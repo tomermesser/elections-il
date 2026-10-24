@@ -119,6 +119,9 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
+.mine-link{background:none;border:0;padding:2px 4px;margin:-2px -4px;font:inherit;font-weight:700;color:var(--accent);cursor:pointer;border-radius:6px;text-align:start}
+.mine-link:hover .mine-tag,.mine-link:focus-visible .mine-tag{text-decoration:underline}
+.mine-tag{font-weight:600;font-size:.85em}
 .gbar{display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1px solid var(--line);padding:10px 14px}
 .gtop{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .gname{font-weight:800;flex:1 1 220px;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
@@ -313,7 +316,7 @@ function renderHead(){
     const n=locked()?(d.picks||[]).length:d.entrants.length;
     const chip=d.results?'<span class="chip done">התוצאות פורסמו</span>':locked()?'<span class="chip lock">ההימורים נעולים</span>':'<span class="chip">פתוח להימורים</span>';
     const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline&&Date.parse(c.deadline)<PICKS_CLOSE?c.deadline:PICKS_CLOSE))}</span>`;
-    const who=d.me?`<span>· ${esc(d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
+    const who=d.me?`<span>· ${mine(d.me.fixedName||d.myPick?.name||d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
     $("#status").innerHTML=`${chip}<span>${locked()?`${n} ${n===1?"ניחוש":"ניחושים"} בקבוצה`:`${n} ${n===1?"הגיש":"הגישו"} ניחוש`}</span>${when}${who}`;
   }
   $("#rules-list").innerHTML=[
@@ -344,7 +347,7 @@ function renderGroups(){
   let panel="";
   if(state.gpanel==="members"&&g){
     const ms=d.group?.members||[],done=ms.filter(m=>m.submitted).length;
-    panel=`<div class="gpanel"><span class="muted">${done} מתוך ${ms.length} כבר הגישו ניחוש.</span><ul class="mlist">${ms.map(m=>`<li><span class="n">${m.name?esc(m.name):'<span class="muted">עוד בלי שם</span>'}${m.me?" (אתה)":""}</span>${m.submitted?'<span class="ok">הגיש ✓</span>':'<span class="muted">עוד לא הגיש</span>'}</li>`).join("")}</ul></div>`;
+    panel=`<div class="gpanel"><span class="muted">${done} מתוך ${ms.length} כבר הגישו ניחוש.</span><ul class="mlist">${ms.map(m=>`<li><span class="n">${m.me?mine(m.name||"אתה"):m.name?esc(m.name):'<span class="muted">עוד בלי שם</span>'}</span>${m.submitted?'<span class="ok">הגיש ✓</span>':'<span class="muted">עוד לא הגיש</span>'}</li>`).join("")}</ul></div>`;
   }else if(state.gpanel==="invite"&&g){
     const canRotate=g.role==="admin"||d.me.isAdmin;
     panel=`<div class="gpanel"><span class="muted">שלח את הלינק לחברים. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}" אחרי שהוא נרשם.</span>
@@ -375,6 +378,15 @@ function renderGroups(){
   });
 }
 const noGroup=()=>state.data?.me&&!state.data.group?'<div class="card muted">הטבלה מוצגת לפי קבוצה. הצטרף לקבוצה דרך לינק הזמנה, או פתח קבוצה חדשה למעלה.</div>':null;
+// Your own name, wherever it appears, opens your pick for editing.
+function mine(name){const t=locked()?"לצפייה בניחוש שלך":"לעריכת הניחוש שלך";return `<button type="button" class="mine-link" data-mine title="${t}" aria-label="${esc(name)} (אתה). ${t}">${esc(name)} <span class="mine-tag">(אתה) ✎</span></button>`}
+function goMine(){
+  state.tab="predict";state.gpanel=null;render();
+  const f=$("#f");if(!f)return;
+  f.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+  const first=f.querySelector("input[type=number]:not([disabled])");if(first)first.focus({preventScroll:true});
+}
+document.addEventListener("click",e=>{if(e.target.closest("[data-mine]")){e.preventDefault();goMine()}});
 let updPredict=null;
 function render(soft){
   renderHead();
@@ -507,14 +519,14 @@ function vBoard(){
   if(noGroup()){$("#view").innerHTML=noGroup();return}
   if(!locked()){
     if(!d.entrants.length){$("#view").innerHTML='<div class="card muted">עוד אף אחד לא הגיש ניחוש. היה הראשון.</div>';return}
-    $("#view").innerHTML=`<div class="banner">הניחושים חסויים עד הנעילה. כאן רואים רק מי כבר הגיש.</div><div class="card">${d.entrants.map(e=>`<div class="row"><span class="n">${esc(e.name)}${e.mine?" (אתה)":""}</span><span class="muted">${esc(fmtTime(e.updatedAt))}</span></div>`).join("")}</div>`;return;
+    $("#view").innerHTML=`<div class="banner">הניחושים חסויים עד הנעילה. כאן רואים רק מי כבר הגיש.</div><div class="card">${d.entrants.map(e=>`<div class="row"><span class="n">${e.mine?mine(e.name):esc(e.name)}</span><span class="muted">${esc(fmtTime(e.updatedAt))}</span></div>`).join("")}</div>`;return;
   }
   const list=d.picks||[];
   if(!d.results){
-    $("#view").innerHTML=`<div class="banner">התוצאות עוד לא פורסמו.</div><div class="card">${list.map(p=>`<div class="row"><span class="n">${esc(p.name)}${p.mine?" (אתה)":""}</span></div>`).join("")||'<span class="muted">אף אחד לא הגיש לפני הנעילה.</span>'}</div>`;return;
+    $("#view").innerHTML=`<div class="banner">התוצאות עוד לא פורסמו.</div><div class="card">${list.map(p=>`<div class="row"><span class="n">${p.mine?mine(p.name):esc(p.name)}</span></div>`).join("")||'<span class="muted">אף אחד לא הגיש לפני הנעילה.</span>'}</div>`;return;
   }
   const rows=scored();
-  $("#view").innerHTML=`<div class="card lb">${rows.map((r,i)=>`<div class="row" style="--i:${Math.min(i,12)}"><span class="rank">${r.rank}</span><span class="n">${r.rank===1?"🏆 ":""}${esc(r.name)}${r.mine?" (אתה)":""}</span><span class="pts">${r.s.total}</span></div>`).join("")||'<span class="muted">אין ניחושים.</span>'}</div>`;
+  $("#view").innerHTML=`<div class="card lb">${rows.map((r,i)=>`<div class="row" style="--i:${Math.min(i,12)}"><span class="rank">${r.rank}</span><span class="n">${r.rank===1?"🏆 ":""}${r.mine?mine(r.name):esc(r.name)}</span><span class="pts">${r.s.total}</span></div>`).join("")||'<span class="muted">אין ניחושים.</span>'}</div>`;
 }
 
 function vStats(){
