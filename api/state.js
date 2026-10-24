@@ -1,6 +1,6 @@
 import { db, settings } from "../lib/db.js";
 import { currentUser, isAdmin, displayEmail, googleEnabled, PIN_PREFIX } from "../lib/auth.js";
-import { config } from "../lib/game.js";
+import { config, POLLS_CLOSE } from "../lib/game.js";
 
 const asPick = (r) => ({ name: r.name, seats: r.seats, blocs: r.blocs, turnout: Number(r.turnout) });
 
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       results: lockedAt ? s.results : null,
       me: user ? { email: label, googleName: user.name, fixedName, isAdmin: isAdmin(user.email) } : null,
       googleEnabled: googleEnabled(),
+      pollsClose: POLLS_CLOSE,
       myPick: mineRow ? { ...asPick(mineRow), updatedAt: mineRow.updated_at } : null,
       entrants,
       picks,

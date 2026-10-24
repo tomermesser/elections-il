@@ -161,6 +161,7 @@ async function load(){
     const r=await fetch("/api/state",{cache:"no-store",credentials:"same-origin"});
     if(!r.ok)throw new Error();
     state.data=await r.json();state.err=null;
+    if(state.data.pollsClose)EXIT_POLLS=Date.parse(state.data.pollsClose);
     if(!state.dirty)state.draft=null;
   }catch(e){if(!state.data)state.err="אין חיבור לשרת. רענן את הדף ונסה שוב."}
   loading=false;render(true);
@@ -205,7 +206,7 @@ function renderHead(){
   else{
     const n=locked()?(d.picks||[]).length:d.entrants.length;
     const chip=d.results?'<span class="chip done">התוצאות פורסמו</span>':locked()?'<span class="chip lock">ההימורים נעולים</span>':'<span class="chip">פתוח להימורים</span>';
-    const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:c.deadline?`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline))}</span>`:"";
+    const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline&&Date.parse(c.deadline)<EXIT_POLLS?c.deadline:EXIT_POLLS))}</span>`;
     const who=d.me?`<span>· ${esc(d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
     $("#status").innerHTML=`${chip}<span>${n} ${n===1?"משתתף":"משתתפים"}</span>${when}${who}`;
   }
@@ -453,11 +454,13 @@ function vAdmin(){
 /* ---------- countdown to the exit polls ---------- */
 // Polls close and the exit polls air on Tuesday 27.10.2026 at 22:00 Israel time
 // (UTC+2: summer time ends on 25.10).
-const EXIT_POLLS=Date.parse("2026-10-27T22:00:00+02:00");
+let EXIT_POLLS=Date.parse("2026-10-27T22:00:00+02:00"),reloadedAtClose=false;
 function tickCountdown(){
   const el=$("#countdown"),out=$("#cd-time"),label=el.querySelector(".cd-label");
   const ms=EXIT_POLLS-Date.now();
   if(ms<=0){
+    // Voting closes now: fetch the locked state once, so the form locks without a refresh.
+    if(!reloadedAtClose){reloadedAtClose=true;state.dirty=false;setTimeout(load,1500)}
     const live=ms>-3*3600e3;
     el.classList.toggle("live",live);
     label.textContent=live?"עכשיו":"";

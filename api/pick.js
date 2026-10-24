@@ -1,6 +1,6 @@
 import { db, settings } from "../lib/db.js";
 import { currentUser, sameOriginJson, PIN_PREFIX } from "../lib/auth.js";
-import { config, parsePick } from "../lib/game.js";
+import { config, parsePick, POLLS_CLOSE } from "../lib/game.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -30,11 +30,13 @@ export default async function handler(req, res) {
       from settings
       where id = 1 and locked_at is null
         and (config->>'deadline' is null or now() < (config->>'deadline')::timestamptz)
+        and now() < ${POLLS_CLOSE}::timestamptz
       on conflict (email) do update
         set name = excluded.name, seats = excluded.seats, blocs = excluded.blocs,
             turnout = excluded.turnout, updated_at = now()
         where (select locked_at is null
                  and (config->>'deadline' is null or now() < (config->>'deadline')::timestamptz)
+                 and now() < ${POLLS_CLOSE}::timestamptz
                from settings where id = 1)
       returning updated_at`;
     if (!rows.length) return res.status(423).json({ error: "ההימורים כבר ננעלו" });
