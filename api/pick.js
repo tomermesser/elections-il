@@ -1,5 +1,5 @@
 import { db, settings } from "../lib/db.js";
-import { currentUser, sameOriginJson } from "../lib/auth.js";
+import { currentUser, sameOriginJson, PIN_PREFIX } from "../lib/auth.js";
 import { config, parsePick } from "../lib/game.js";
 
 export default async function handler(req, res) {
@@ -13,6 +13,15 @@ export default async function handler(req, res) {
     if (s.locked_at) return res.status(423).json({ error: "ההימורים כבר ננעלו" });
     const { pick, error } = parsePick(req.body, config(s.config).parties);
     if (error) return res.status(400).json({ error });
+
+    // Name + PIN players always appear under the name they sign in with.
+    if (user.email.startsWith(PIN_PREFIX)) {
+      const [acc] = await sql`select display_name from accounts where email = ${user.email.slice(PIN_PREFIX.length)}`;
+      if (acc?.display_name) pick.name = acc.display_name;
+    }
+    // Nobody may take a name another player signs in with.
+    const [taken] = await sql`select email from accounts where lower(display_name) = lower(${pick.name})`;
+    if (taken && PIN_PREFIX + taken.email !== user.email) return res.status(409).json({ error: "השם הזה כבר תפוס, בחר שם אחר" });
 
     // The lock check is part of the same statement, so a pick can't slip in after the lock.
     const rows = await sql`

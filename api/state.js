@@ -1,5 +1,5 @@
 import { db, settings } from "../lib/db.js";
-import { currentUser, isAdmin, displayEmail, googleEnabled } from "../lib/auth.js";
+import { currentUser, isAdmin, displayEmail, googleEnabled, PIN_PREFIX } from "../lib/auth.js";
 import { config } from "../lib/game.js";
 
 const asPick = (r) => ({ name: r.name, seats: r.seats, blocs: r.blocs, turnout: Number(r.turnout) });
@@ -15,6 +15,12 @@ export default async function handler(req, res) {
     const rows = await sql`select email, name, seats, blocs, turnout, updated_at from picks order by created_at`;
     const entrants = rows.map((r) => ({ name: r.name, updatedAt: r.updated_at, mine: !!user && r.email === user.email }));
     const mineRow = user ? rows.find((r) => r.email === user.email) : null;
+    let fixedName = null;
+    if (user && user.email.startsWith(PIN_PREFIX)) {
+      const [acc] = await sql`select display_name from accounts where email = ${user.email.slice(PIN_PREFIX.length)}`;
+      fixedName = acc?.display_name || null;
+    }
+    const label = !user ? "" : user.email.startsWith(PIN_PREFIX) ? (fixedName || mineRow?.name || displayEmail(user.email)) : user.email;
 
     // Other people's picks only leave the server after the lock, and only as they were at lock time.
     const picks = lockedAt
@@ -25,7 +31,7 @@ export default async function handler(req, res) {
       config: c,
       lockedAt,
       results: lockedAt ? s.results : null,
-      me: user ? { email: displayEmail(user.email), googleName: user.name, isAdmin: isAdmin(user.email) } : null,
+      me: user ? { email: label, googleName: user.name, fixedName, isAdmin: isAdmin(user.email) } : null,
       googleEnabled: googleEnabled(),
       myPick: mineRow ? { ...asPick(mineRow), updatedAt: mineRow.updated_at } : null,
       entrants,

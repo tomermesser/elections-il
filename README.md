@@ -1,13 +1,13 @@
 # הימורי בחירות 2026
 
-Seat-prediction pool for friends. Static frontend (`public/index.html`) + Vercel serverless API (`api/`) + Neon Postgres. Sign-in with Google, or with email + name + a personal PIN.
+Seat-prediction pool for friends. Static frontend (`public/index.html`) + Vercel serverless API (`api/`) + Neon Postgres. Sign-in with Google, or with a display name + a personal PIN.
 
 ## What the server enforces
 - Nobody (admin included) gets other players' picks from the API before the lock.
 - After the lock (manual, or the auto-lock deadline) the server rejects every new pick or edit, in the same SQL statement that writes it.
 - Picks are validated server-side (known parties, integers, totals of 120, turnout 0–100).
 - One entry per account; display names are unique.
-- Email sign-in: the first sign-in for an address sets its 4–8 digit PIN (stored as a scrypt hash); 5 wrong PINs lock the address for 15 minutes. These identities are stored as `pin:<email>`, separate from Google accounts, so a typed-in address can't act as someone's Google account or as an admin. To make an email account an admin, add `pin:<email>` to `ADMIN_EMAILS` (only after that account exists with your PIN).
+- Name + PIN sign-in: the first sign-in with a free name claims it with a 4–8 digit PIN (scrypt hash); later sign-ins with that name need the same PIN, and 5 wrong PINs lock the name for 15 minutes. A name that belongs to someone (a PIN account, or a Google player's pick) can't be claimed by anyone else. Accounts created by the earlier email + PIN flow keep their picks: they sign in with the name on their pick and their old PIN. These identities are stored as `pin:<key>`, separate from Google accounts, so they can't act as an admin unless listed with the prefix in `ADMIN_EMAILS`.
 - Settings and scoring rules are frozen once locked. Only `ADMIN_EMAILS` can change settings, lock, or publish results.
 
 ## Environment variables

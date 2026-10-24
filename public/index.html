@@ -122,7 +122,7 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 </main>
 <script>
 const BLOCS=["גוש השינוי","גוש נתניהו","מפלגות ערביות"];
-const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null,login:{name:"",email:""}};
+const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null,login:{name:""}};
 const loginError=new URLSearchParams(location.search).get("login_error");
 if(loginError)history.replaceState(null,"","/");
 
@@ -222,13 +222,12 @@ function loginCard(){
   const why={state:"ההתחברות פג תוקפה, נסה שוב.",token:"Google לא אישר את ההתחברות, נסה שוב.",verify:"לא הצלחנו לאמת את החשבון, נסה שוב.",email:"צריך חשבון Google עם כתובת מייל מאומתת.",server:"שגיאת שרת בהתחברות, נסה שוב."}[loginError]||"";
   const g=state.data?.googleEnabled,f=state.login;
   return `${why?`<div class="banner bad">${esc(why)}</div>`:""}<div class="card login">
-  <p>כדי לשלוח ניחוש צריך להתחבר${g?" עם Google, או עם מייל וקוד אישי":" עם מייל וקוד אישי"}.</p>
-  ${g?'<a class="btn primary" href="/api/auth/login">התחברות עם Google</a><div class="or">או עם מייל</div>':""}
+  <p>כדי לשלוח ניחוש צריך להתחבר${g?" עם Google, או עם שם וקוד אישי":" עם שם וקוד אישי"}.</p>
+  ${g?'<a class="btn primary" href="/api/auth/login">התחברות עם Google</a><div class="or">או עם שם וקוד</div>':""}
   <form id="lf" class="lf" novalidate>
-    <label for="lf-name" style="margin-top:0">שם</label><input type="text" id="lf-name" name="name" maxlength="30" autocomplete="name" value="${esc(f.name)}">
-    <label for="lf-email">מייל</label><input type="email" id="lf-email" name="email" maxlength="254" autocomplete="email" dir="ltr" value="${esc(f.email)}">
+    <label for="lf-name" style="margin-top:0">שם (יופיע בטבלה)</label><input type="text" id="lf-name" name="name" maxlength="30" autocomplete="username" value="${esc(f.name)}">
     <label for="lf-pin">קוד אישי (4 עד 8 ספרות)</label><input type="password" id="lf-pin" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="current-password" dir="ltr">
-    <p class="muted hint">בכניסה הראשונה הקוד שתבחר נשמר. עם אותו מייל וקוד נכנסים מכל מכשיר.</p>
+    <p class="muted hint">בפעם הראשונה בוחרים שם וקוד. בפעם הבאה נכנסים עם אותו שם וקוד, מכל מכשיר. אם השם כבר תפוס, נבקש ממך לבחור שם אחר.</p>
     <div class="actions"><button class="btn${g?"":" primary"}" id="lf-go" type="submit">כניסה</button><span id="lf-msg" class="muted" role="status"></span></div>
   </form></div>`;
 }
@@ -239,7 +238,7 @@ document.addEventListener("submit",async e=>{
   const msg=$("#lf-msg"),go=$("#lf-go");
   go.disabled=true;msg.textContent="מתחבר…";
   try{
-    await api("/api/auth/email",{name:$("#lf-name").value,email:$("#lf-email").value,pin:$("#lf-pin").value});
+    await api("/api/auth/email",{name:$("#lf-name").value,pin:$("#lf-pin").value});
     state.draft=null;state.dirty=false;await load();render();
   }catch(err){msg.textContent=err.message;go.disabled=false}
 });
@@ -252,7 +251,7 @@ function vPredict(){
   const d0=state.data,c=cfg(),mine=d0.myPick;
   if(!d0.me&&!locked()){$("#view").innerHTML=loginCard();return}
   if(!state.draft){
-    state.draft={name:mine?.name||cleanName(d0.me?.googleName),seats:{},blocs:{},turnout:mine?.turnout??""};
+    state.draft={name:d0.me?.fixedName||mine?.name||cleanName(d0.me?.googleName),seats:{},blocs:{},turnout:mine?.turnout??""};
     c.parties.forEach(k=>state.draft.seats[k]=+(mine?.seats?.[k]??0)||0);
     BLOCS.forEach(b=>state.draft.blocs[b]=+(mine?.blocs?.[b]??0)||0);
   }
@@ -270,7 +269,7 @@ function vPredict(){
   $("#view").innerHTML=`${banner}
   <form class="card" id="f" novalidate>
     <label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
-    <input type="text" id="nm" maxlength="30" autocomplete="nickname" value="${esc(d.name)}" ${dis?"disabled":""}>
+    <input type="text" id="nm" maxlength="30" autocomplete="nickname" value="${esc(d.name)}" ${dis||d0.me?.fixedName?"disabled":""}>
     <div class="sec">מנדטים לכל מפלגה <small id="tot"></small></div>${rows}
     <div class="sec">גודל הגושים <small id="btot"></small></div>${brows}
     <div class="sec">אחוז הצבעה</div>
