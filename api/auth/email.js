@@ -4,6 +4,7 @@
 import { db, nameOwner } from "../../lib/db.js";
 import { sameOriginJson, sessionCookie, hashPin, checkPin, PIN_PREFIX } from "../../lib/auth.js";
 import { cleanName } from "../../lib/game.js";
+import { newCode } from "../../lib/groups.js";
 
 const MAX_FAILS = 5;
 
@@ -24,7 +25,8 @@ export default async function handler(req, res) {
 
     if (!owner) {
       // New player: the name is free, so it becomes theirs with this PIN.
-      const key = "n:" + name.toLowerCase();
+      // A random key, not the name: names can change and be freed for others.
+      const key = "n:" + newCode(12);
       let rows;
       try {
         rows = await sql`insert into accounts (email, pin_hash, display_name) values (${key}, ${await hashPin(pin)}, ${name})

@@ -119,7 +119,11 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
-.asname{margin:0 0 4px}
+.asname{margin:0 0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.asname > span:first-child{flex:1 1 200px}
+.asname.rn{flex-direction:column;align-items:stretch;gap:6px}
+.rn-line{display:flex;gap:8px;align-items:center}
+.rn-line input{flex:1;min-width:0}
 .mine-link{background:none;border:0;padding:2px 4px;margin:-2px -4px;font:inherit;font-weight:700;color:var(--accent);cursor:pointer;border-radius:6px;text-align:start}
 .mine-link:hover .mine-tag,.mine-link:focus-visible .mine-tag{text-decoration:underline}
 .mine-tag{font-weight:600;font-size:.85em}
@@ -449,7 +453,10 @@ function vPredict(){
   const brows=BLOCS.map(b=>`<div class="row brow"><span class="n">${esc(b)}</span><span class="tag" data-maj="${esc(b)}"></span><div class="maj" aria-hidden="true"><i data-bar="${esc(b)}"></i><b></b></div>${stepper("data-b",b,d.blocs[b],dis)}</div>`).join("");
   $("#view").innerHTML=`${banner}
   <form class="card" id="f" novalidate>
-    ${d0.me?.fixedName?`<p class="asname">בטבלה תופיע בתור <b>${esc(d0.me.fixedName)}</b>, השם שאיתו נכנסת.</p>`:`<label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
+    ${d0.me?.fixedName?(state.renaming&&!dis?`<div class="asname rn"><label for="rn-name" style="margin:0">השם החדש</label>
+      <div class="rn-line"><input type="text" id="rn-name" maxlength="30" autocomplete="username" value="${esc(d0.me.fixedName)}"><button type="button" class="btn sm primary" id="rn-save">שמור שם</button><button type="button" class="btn sm" id="rn-cancel">ביטול</button></div>
+      <span class="muted">מעכשיו תיכנס עם השם החדש ועם אותו קוד.</span><span id="rn-msg" class="bad" role="status"></span></div>`
+    :`<div class="asname"><span>בטבלה תופיע בתור <b>${esc(d0.me.fixedName)}</b>. עם השם הזה גם נכנסים.</span>${dis?"":'<button type="button" class="btn sm" id="rn-open">שינוי שם</button>'}</div>`):`<label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
     <input type="text" id="nm" maxlength="30" autocomplete="nickname" value="${esc(d.name)}" ${dis?"disabled":""}>`}
     <div class="sec">מנדטים לכל מפלגה <small id="tot"></small></div>${rows}
     <div class="sec">גודל הגושים <small id="btot"></small></div>${brows}
@@ -488,6 +495,15 @@ function vPredict(){
     else d.turnout=v===""?"":Math.max(0,Math.min(100,Math.round(+v*10)/10));
   };
   const val=(attr,key)=>attr==="data-p"?d.seats[key]:attr==="data-b"?d.blocs[key]:d.turnout;
+  $("#rn-open")?.addEventListener("click",()=>{state.renaming=true;vPredict();const i=$("#rn-name");if(i){i.focus();i.select()}});
+  $("#rn-cancel")?.addEventListener("click",()=>{state.renaming=false;vPredict()});
+  const rnSave=async()=>{
+    const i=$("#rn-name"),m=$("#rn-msg"),b=$("#rn-save");b.disabled=true;m.textContent="";
+    try{const j=await api("/api/auth/rename",{name:i.value});state.renaming=false;d.name=j.name;await load();state.tab="predict";render()}
+    catch(e){m.textContent=e.message;b.disabled=false}
+  };
+  $("#rn-save")?.addEventListener("click",rnSave);
+  $("#rn-name")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();rnSave()}else if(e.key==="Escape"){state.renaming=false;vPredict()}});
   if($("#nm"))$("#nm").oninput=e=>{state.dirty=true;delete msg.dataset.sticky;d.name=e.target.value;upd()};
   $("#view").querySelectorAll("input[type=number]").forEach(i=>{
     const attr=i.hasAttribute("data-p")?"data-p":i.hasAttribute("data-b")?"data-b":"data-t";
