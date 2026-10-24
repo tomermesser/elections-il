@@ -24,8 +24,8 @@
   --accent:#8aa4ff;--accent-ink:#0b1122;--accent-soft:#1f2a4b;
   --good:#55d394;--good-soft:#123122;--warn:#f2b45c;--warn-soft:#382811;--bad:#ff8085;--bad-soft:#3b191c;color-scheme:dark}}
 *{box-sizing:border-box}
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{background:var(--bg);color:var(--ink);font:17px/1.5 var(--f-body);margin:0}
+html{background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 var(--f-body);margin:0;overflow-wrap:anywhere}
 [hidden]{display:none!important}
 main{max-width:680px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 h1{font-family:var(--f-display);font-weight:400;font-size:2rem;line-height:1.15;margin:0;text-wrap:balance}
@@ -43,7 +43,7 @@ nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:4px
 nav button{border:0;background:transparent;padding:9px 6px;border-radius:9px;font-weight:700;color:var(--muted)}
 nav button.on{background:var(--accent);color:var(--accent-ink)}
 button,input,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:10px 16px;font-weight:700;text-decoration:none;color:var(--ink)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -60,6 +60,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .step{display:flex;align-items:center;gap:4px;direction:ltr}
 .step button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--bg);font-weight:800;line-height:1}
 input[type=number],input[type=text],input[type=datetime-local],textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 8px;width:100%}
+input[type=datetime-local]{min-width:0;min-height:42px;display:block}
 input[type=number]{width:62px;text-align:center;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 input:disabled,textarea:disabled{opacity:.7}
@@ -86,6 +87,19 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .login{align-items:flex-start;gap:10px}
 .login p{margin:0}
 .n,td,th{unicode-bidi:plaintext}
+/* Phones: bigger tap targets, bloc bar and stats numbers drop under the name */
+@media (pointer:coarse){.step button{width:42px;height:42px}}
+@media (max-width:480px){
+  h1{font-size:1.7rem}
+  nav{grid-template-columns:repeat(auto-fit,minmax(72px,1fr))}
+  nav button{font-size:.9rem;padding:9px 2px}
+  .card{padding:14px 12px}
+  input[type=number]{width:56px}
+  .brow,.srow{flex-wrap:wrap;row-gap:4px}
+  .brow .maj{order:9;flex:1 1 100%}
+  .srow .n{flex-basis:100%}
+  td:first-child{white-space:normal;overflow-wrap:normal;min-width:88px;max-width:120px;box-shadow:inset -1px 0 0 var(--line)}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -233,7 +247,7 @@ function vPredict(){
   }
   if(locked()&&!mine){$("#view").innerHTML=banner+(d0.me?"":loginCard());return}
   const rows=c.parties.map(p=>`<div class="row"><span class="n">${esc(p)}</span>${stepper("data-p",p,d.seats[p],dis)}</div>`).join("");
-  const brows=BLOCS.map(b=>`<div class="row"><span class="n">${esc(b)}</span><span class="tag" data-maj="${esc(b)}"></span><div class="maj" aria-hidden="true"><i data-bar="${esc(b)}"></i><b></b></div>${stepper("data-b",b,d.blocs[b],dis)}</div>`).join("");
+  const brows=BLOCS.map(b=>`<div class="row brow"><span class="n">${esc(b)}</span><span class="tag" data-maj="${esc(b)}"></span><div class="maj" aria-hidden="true"><i data-bar="${esc(b)}"></i><b></b></div>${stepper("data-b",b,d.blocs[b],dis)}</div>`).join("");
   $("#view").innerHTML=`${banner}
   <form class="card" id="f" novalidate>
     <label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
@@ -318,7 +332,7 @@ function vStats(){
   const list=state.data.picks||[],res=state.data.results,c=cfg();
   if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
   const stat=f=>{const v=list.map(p=>+f(p)||0);return{a:v.reduce((x,y)=>x+y,0)/v.length,lo:Math.min(...v),hi:Math.max(...v)}};
-  const block=(items,max,actual)=>items.sort((x,y)=>y.s.a-x.s.a).map(it=>`<div class="row"><span class="n">${esc(it.k)}</span><div class="bar"><i style="width:${Math.min(100,it.s.a/max*100)}%"></i></div><span class="avg">${it.s.a.toFixed(1)}</span><span class="rng muted">${it.s.lo}–${it.s.hi}</span>${actual?`<span class="rng">${esc(actual(it.k))}</span>`:""}</div>`).join("");
+  const block=(items,max,actual)=>items.sort((x,y)=>y.s.a-x.s.a).map(it=>`<div class="row srow"><span class="n">${esc(it.k)}</span><div class="bar"><i style="width:${Math.min(100,it.s.a/max*100)}%"></i></div><span class="avg">${it.s.a.toFixed(1)}</span><span class="rng muted">${it.s.lo}–${it.s.hi}</span>${actual?`<span class="rng">${esc(actual(it.k))}</span>`:""}</div>`).join("");
   const ps=c.parties.map(k=>({k,s:stat(p=>p.seats?.[k])})),bs=BLOCS.map(k=>({k,s:stat(p=>p.blocs?.[k])})),tn=stat(p=>p.turnout);
   const pmax=Math.max(...ps.map(x=>x.s.a),1),bmax=Math.max(...bs.map(x=>x.s.a),1);
   $("#view").innerHTML=`<div class="card"><p class="muted" style="margin:0">לפי ${list.length} ניחושים. עמודות: ממוצע · הכי נמוך–הכי גבוה${res?" · בפועל":""}.</p>
