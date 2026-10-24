@@ -1,5 +1,5 @@
 import { db, settings } from "../lib/db.js";
-import { currentUser, isAdmin } from "../lib/auth.js";
+import { currentUser, isAdmin, displayEmail, googleEnabled } from "../lib/auth.js";
 import { config } from "../lib/game.js";
 
 const asPick = (r) => ({ name: r.name, seats: r.seats, blocs: r.blocs, turnout: Number(r.turnout) });
@@ -25,7 +25,8 @@ export default async function handler(req, res) {
       config: c,
       lockedAt,
       results: lockedAt ? s.results : null,
-      me: user ? { email: user.email, googleName: user.name, isAdmin: isAdmin(user.email) } : null,
+      me: user ? { email: displayEmail(user.email), googleName: user.name, isAdmin: isAdmin(user.email) } : null,
+      googleEnabled: googleEnabled(),
       myPick: mineRow ? { ...asPick(mineRow), updatedAt: mineRow.updated_at } : null,
       entrants,
       picks,

@@ -59,7 +59,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}
 .step{display:flex;align-items:center;gap:4px;direction:ltr}
 .step button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--bg);font-weight:800;line-height:1}
-input[type=number],input[type=text],input[type=datetime-local],textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 8px;width:100%}
+input[type=number],input[type=text],input[type=email],input[type=password],input[type=datetime-local],textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 8px;width:100%}
 input[type=datetime-local]{min-width:0;min-height:42px;display:block}
 input[type=number]{width:62px;text-align:center;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -86,6 +86,10 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .confirm{margin-top:10px;padding:12px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft)}
 .login{align-items:flex-start;gap:10px}
 .login p{margin:0}
+.login .lf{width:100%}
+.login .hint{margin-top:8px;font-size:.85rem}
+.or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
 /* Phones: bigger tap targets, bloc bar and stats numbers drop under the name */
 @media (pointer:coarse){.step button{width:42px;height:42px}}
@@ -113,18 +117,12 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
     <summary>איך סופרים נקודות</summary>
     <ul id="rules-list"></ul>
   </details>
-  <details>
-    <summary>למה אי אפשר לרמות</summary>
-    <p>הניחושים נשמרים בשרת, והשרת לא מוסר לאף אחד את הניחושים של אחרים לפני הנעילה. עד אז רואים רק מי הגיש ומתי.</p>
-    <p>מרגע הנעילה השרת דוחה כל שינוי, ובטבלה מוצגים הניחושים בדיוק כפי שהיו ברגע הנעילה. אחרי הנעילה גם אי אפשר לשנות את חוקי הניקוד.</p>
-    <p>כל משתתף מזוהה לפי חשבון ה-Google שלו. אותו ניחוש מופיע בכל דפדפן ומכשיר, ואי אפשר להגיש פעמיים מאותו חשבון.</p>
-  </details>
   <nav id="nav"></nav>
   <div id="view"></div>
 </main>
 <script>
 const BLOCS=["גוש השינוי","גוש נתניהו","מפלגות ערביות"];
-const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null};
+const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null,login:{name:"",email:""}};
 const loginError=new URLSearchParams(location.search).get("login_error");
 if(loginError)history.replaceState(null,"","/");
 
@@ -222,8 +220,29 @@ function render(soft){
 
 function loginCard(){
   const why={state:"ההתחברות פג תוקפה, נסה שוב.",token:"Google לא אישר את ההתחברות, נסה שוב.",verify:"לא הצלחנו לאמת את החשבון, נסה שוב.",email:"צריך חשבון Google עם כתובת מייל מאומתת.",server:"שגיאת שרת בהתחברות, נסה שוב."}[loginError]||"";
-  return `${why?`<div class="banner bad">${esc(why)}</div>`:""}<div class="card login"><p>כדי לשלוח ניחוש צריך להתחבר עם Google. נשמור רק את כתובת המייל, כדי לזהות אותך מכל מכשיר.</p><a class="btn primary" href="/api/auth/login">התחברות עם Google</a></div>`;
+  const g=state.data?.googleEnabled,f=state.login;
+  return `${why?`<div class="banner bad">${esc(why)}</div>`:""}<div class="card login">
+  <p>כדי לשלוח ניחוש צריך להתחבר${g?" עם Google, או עם מייל וקוד אישי":" עם מייל וקוד אישי"}.</p>
+  ${g?'<a class="btn primary" href="/api/auth/login">התחברות עם Google</a><div class="or">או עם מייל</div>':""}
+  <form id="lf" class="lf" novalidate>
+    <label for="lf-name" style="margin-top:0">שם</label><input type="text" id="lf-name" name="name" maxlength="30" autocomplete="name" value="${esc(f.name)}">
+    <label for="lf-email">מייל</label><input type="email" id="lf-email" name="email" maxlength="254" autocomplete="email" dir="ltr" value="${esc(f.email)}">
+    <label for="lf-pin">קוד אישי (4 עד 8 ספרות)</label><input type="password" id="lf-pin" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="current-password" dir="ltr">
+    <p class="muted hint">בכניסה הראשונה הקוד שתבחר נשמר. עם אותו מייל וקוד נכנסים מכל מכשיר.</p>
+    <div class="actions"><button class="btn${g?"":" primary"}" id="lf-go" type="submit">כניסה</button><span id="lf-msg" class="muted" role="status"></span></div>
+  </form></div>`;
 }
+document.addEventListener("input",e=>{if(e.target.form?.id==="lf"&&e.target.name in state.login)state.login[e.target.name]=e.target.value});
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="lf")return;
+  e.preventDefault();
+  const msg=$("#lf-msg"),go=$("#lf-go");
+  go.disabled=true;msg.textContent="מתחבר…";
+  try{
+    await api("/api/auth/email",{name:$("#lf-name").value,email:$("#lf-email").value,pin:$("#lf-pin").value});
+    state.draft=null;state.dirty=false;await load();render();
+  }catch(err){msg.textContent=err.message;go.disabled=false}
+});
 
 function stepper(attr,key,val,dis,step=1,max=120){
   return `<div class="step"><button type="button" data-dec="${esc(key)}" data-a="${attr}" aria-label="פחות" ${dis?"disabled":""}>−</button><input type="number" min="0" max="${max}" step="${step}" inputmode="${step===1?"numeric":"decimal"}" id="${attr}-${esc(key)}" ${attr}="${esc(key)}" value="${esc(val??"")}" ${dis?"disabled":""}><button type="button" data-inc="${esc(key)}" data-a="${attr}" aria-label="יותר" ${dis?"disabled":""}>+</button></div>`;
