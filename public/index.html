@@ -99,6 +99,10 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
+.pn{display:flex;align-items:center;gap:8px;min-width:0;direction:rtl;unicode-bidi:isolate}
+.pt{min-width:0}
+/* A tiny ballot slip: the party's letters, like on the paper in the booth. */
+.slip{flex:none;display:inline-grid;place-items:center;width:2.6em;height:1.75em;border:1px solid var(--line);border-radius:3px;background:var(--paper);box-shadow:0 1px 0 var(--line);font-family:var(--f-display);font-size:.8rem;line-height:1;color:var(--ink);letter-spacing:.02em}
 /* Phones: bigger tap targets, bloc bar and stats numbers drop under the name */
 @media (pointer:coarse){.step button{width:42px;height:42px}}
 @media (max-width:480px){
@@ -136,6 +140,9 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 </main>
 <script>
 const BLOCS=["גוש השינוי","גוש נתניהו","מפלגות ערביות"];
+// Ballot letters approved by the Central Elections Committee (27.9.2026).
+const LETTERS={"הליכוד":"מחל","יחד (בנט ולפיד)":"רק","ישר!":"דרך","ישראל ביתנו":"ל","ש״ס":"שס","יהדות התורה":"ג","הציונות הדתית":"ט","עוצמה יהודית":"ב","הדמוקרטים":"אמת","רע״מ":"עם","הרשימה המשותפת":"ודם","המילואימניקים והכלכלית (הנדל וזליכה)":"די","עמך ישראל (וינטר)":"ך"};
+const pname=p=>{const l=LETTERS[p];return `<span class="pn">${l?`<span class="slip" title="אותיות הפתק: ${esc(l)}">${esc(l)}</span>`:""}<span class="pt">${esc(p)}</span></span>`};
 const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null,login:{name:""}};
 const loginError=new URLSearchParams(location.search).get("login_error");
 if(loginError)history.replaceState(null,"","/");
@@ -162,6 +169,7 @@ async function load(){
     if(!r.ok)throw new Error();
     state.data=await r.json();state.err=null;
     if(state.data.pollsClose)EXIT_POLLS=Date.parse(state.data.pollsClose);
+    if(state.data.picksClose)PICKS_CLOSE=Date.parse(state.data.picksClose);
     if(!state.dirty)state.draft=null;
   }catch(e){if(!state.data)state.err="אין חיבור לשרת. רענן את הדף ונסה שוב."}
   loading=false;render(true);
@@ -206,7 +214,7 @@ function renderHead(){
   else{
     const n=locked()?(d.picks||[]).length:d.entrants.length;
     const chip=d.results?'<span class="chip done">התוצאות פורסמו</span>':locked()?'<span class="chip lock">ההימורים נעולים</span>':'<span class="chip">פתוח להימורים</span>';
-    const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline&&Date.parse(c.deadline)<EXIT_POLLS?c.deadline:EXIT_POLLS))}</span>`;
+    const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline&&Date.parse(c.deadline)<PICKS_CLOSE?c.deadline:PICKS_CLOSE))}</span>`;
     const who=d.me?`<span>· ${esc(d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
     $("#status").innerHTML=`${chip}<span>${n} ${n===1?"משתתף":"משתתפים"}</span>${when}${who}`;
   }
@@ -279,7 +287,7 @@ function vPredict(){
     banner=`<div class="banner good">הניחוש שלך נשמר (${esc(fmtTime(mine.updatedAt))}). אפשר לעדכן אותו עד הנעילה.</div>`;
   }
   if(locked()&&!mine){$("#view").innerHTML=banner+(d0.me?"":loginCard());return}
-  const rows=c.parties.map(p=>`<div class="row"><span class="n">${esc(p)}</span>${stepper("data-p",p,d.seats[p],dis)}</div>`).join("");
+  const rows=c.parties.map(p=>`<div class="row"><span class="n">${pname(p)}</span>${stepper("data-p",p,d.seats[p],dis)}</div>`).join("");
   const brows=BLOCS.map(b=>`<div class="row brow"><span class="n">${esc(b)}</span><span class="tag" data-maj="${esc(b)}"></span><div class="maj" aria-hidden="true"><i data-bar="${esc(b)}"></i><b></b></div>${stepper("data-b",b,d.blocs[b],dis)}</div>`).join("");
   $("#view").innerHTML=`${banner}
   <form class="card" id="f" novalidate>
@@ -365,7 +373,7 @@ function vStats(){
   const list=state.data.picks||[],res=state.data.results,c=cfg();
   if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
   const stat=f=>{const v=list.map(p=>+f(p)||0);return{a:v.reduce((x,y)=>x+y,0)/v.length,lo:Math.min(...v),hi:Math.max(...v)}};
-  const block=(items,max,actual)=>items.sort((x,y)=>y.s.a-x.s.a).map(it=>`<div class="row srow"><span class="n">${esc(it.k)}</span><div class="bar"><i style="width:${Math.min(100,it.s.a/max*100)}%"></i></div><span class="avg">${it.s.a.toFixed(1)}</span><span class="rng muted">${it.s.lo}–${it.s.hi}</span>${actual?`<span class="rng">${esc(actual(it.k))}</span>`:""}</div>`).join("");
+  const block=(items,max,actual)=>items.sort((x,y)=>y.s.a-x.s.a).map(it=>`<div class="row srow"><span class="n">${pname(it.k)}</span><div class="bar"><i style="width:${Math.min(100,it.s.a/max*100)}%"></i></div><span class="avg">${it.s.a.toFixed(1)}</span><span class="rng muted">${it.s.lo}–${it.s.hi}</span>${actual?`<span class="rng">${esc(actual(it.k))}</span>`:""}</div>`).join("");
   const ps=c.parties.map(k=>({k,s:stat(p=>p.seats?.[k])})),bs=BLOCS.map(k=>({k,s:stat(p=>p.blocs?.[k])})),tn=stat(p=>p.turnout);
   const pmax=Math.max(...ps.map(x=>x.s.a),1),bmax=Math.max(...bs.map(x=>x.s.a),1);
   $("#view").innerHTML=`<div class="card"><p class="muted" style="margin:0">לפי ${list.length} ניחושים. עמודות: ממוצע · הכי נמוך–הכי גבוה${res?" · בפועל":""}.</p>
@@ -383,7 +391,7 @@ function vPicks(){
   const cols=list.length+(res?2:1),cls=x=>x==="x"?"hit":x==="n"?"near":"";
   const head=`<tr><th></th>${res?"<th>בפועל</th>":""}${list.map(p=>`<th>${esc(p.name)}</th>`).join("")}</tr>`;
   const sec=t=>`<tr class="secrow"><th colspan="${cols}">${t}</th></tr>`;
-  const prow=c.parties.map(k=>`<tr><td>${esc(k)}</td>${res?`<td>${esc(res[k]??"–")}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].per[k])}">${esc(p.seats?.[k]??0)}</td>`).join("")}</tr>`).join("");
+  const prow=c.parties.map(k=>`<tr><td>${pname(k)}</td>${res?`<td>${esc(res[k]??"–")}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].per[k])}">${esc(p.seats?.[k]??0)}</td>`).join("")}</tr>`).join("");
   const brow=BLOCS.map(k=>`<tr><td>${esc(k)}</td>${res?`<td>${esc(res.blocs?.[k]??"–")}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].bl[k])}">${esc(p.blocs?.[k]??0)}</td>`).join("")}</tr>`).join("");
   const trow=`<tr><td>אחוז הצבעה</td>${res?`<td>${res.turnout!=null?esc(res.turnout)+"%":"–"}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].turn)}">${esc(p.turnout)}%${sc[i].closest?" ⭐":""}</td>`).join("")}</tr>`;
   $("#view").innerHTML=`<div class="card scroll"><table>${head}${sec("מפלגות")}${prow}${sec("גושים")}${brow}${sec("אחוז הצבעה")}${trow}</table></div>${res?'<p class="muted" style="margin:0">ירוק = מדויק (באחוז הצבעה: בטווח 1%) · כתום = הפרש של מנדט אחד · ⭐ = הכי קרוב לאחוז ההצבעה</p>':""}`;
@@ -395,7 +403,7 @@ function vAdmin(){
   if(!d.me?.isAdmin){state.tab="predict";return vPredict()}
   const c=cfg(),r=d.results||{},L=locked(),hasEntries=d.entrants.length>0;
   const num=(id,v)=>`<input type="number" id="${id}" min="0" max="100" value="${esc(v??"")}" ${L?"disabled":""}>`;
-  const resRows=c.parties.map((p,i)=>`<div class="row"><span class="n">${esc(p)}</span><input type="number" min="0" max="120" id="r-p-${i}" data-r="${esc(p)}" value="${esc(r[p]??"")}"></div>`).join("");
+  const resRows=c.parties.map((p,i)=>`<div class="row"><span class="n">${pname(p)}</span><input type="number" min="0" max="120" id="r-p-${i}" data-r="${esc(p)}" value="${esc(r[p]??"")}"></div>`).join("");
   const bRows=BLOCS.map((b,i)=>`<div class="row"><span class="n">${esc(b)}</span><input type="number" min="0" max="120" id="r-b-${i}" data-rb="${esc(b)}" value="${esc(r.blocs?.[b]??"")}"></div>`).join("");
   $("#view").innerHTML=`<div class="card">
     <div class="sec">הגדרות</div>
@@ -454,13 +462,18 @@ function vAdmin(){
 /* ---------- countdown to the exit polls ---------- */
 // Polls close and the exit polls air on Tuesday 27.10.2026 at 22:00 Israel time
 // (UTC+2: summer time ends on 25.10).
-let EXIT_POLLS=Date.parse("2026-10-27T22:00:00+02:00"),reloadedAtClose=false;
+let EXIT_POLLS=Date.parse("2026-10-27T22:00:00+02:00"),PICKS_CLOSE=Date.parse("2026-10-27T08:00:00+02:00"),reloadedAtClose=false;
 function tickCountdown(){
   const el=$("#countdown"),out=$("#cd-time"),label=el.querySelector(".cd-label");
-  const ms=EXIT_POLLS-Date.now();
+  const now=Date.now();
+  // Picks close: fetch the locked state once, so the form locks without a refresh.
+  if(now>=PICKS_CLOSE&&!reloadedAtClose){reloadedAtClose=true;state.dirty=false;setTimeout(load,1500)}
+  // Before the lock the clock counts to the lock; after it, to the exit polls.
+  const toLock=now<PICKS_CLOSE;
+  label.textContent=toLock?"עד נעילת ההימורים":"עד המדגמים";
+  el.title=toLock?"ההימורים ננעלים ביום שלישי 27.10 בשעה 08:00":"סגירת הקלפיות ושידור המדגמים, יום שלישי 27.10 בשעה 22:00";
+  const ms=(toLock?PICKS_CLOSE:EXIT_POLLS)-now;
   if(ms<=0){
-    // Voting closes now: fetch the locked state once, so the form locks without a refresh.
-    if(!reloadedAtClose){reloadedAtClose=true;state.dirty=false;setTimeout(load,1500)}
     const live=ms>-3*3600e3;
     el.classList.toggle("live",live);
     label.textContent=live?"עכשיו":"";
