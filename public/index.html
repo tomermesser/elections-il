@@ -30,6 +30,14 @@ body{background:var(--bg);color:var(--ink);font:17px/1.5 var(--f-body);margin:0;
 main{max-width:680px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 h1{font-family:var(--f-display);font-weight:400;font-size:2rem;line-height:1.15;margin:0;text-wrap:balance}
 .head{display:flex;flex-direction:column;gap:8px}
+.titlebar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.titlebar h1{min-width:0}
+.countdown{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding-top:4px;text-align:end}
+.cd-label{font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.cd-time{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.cd-time .clk{direction:ltr;unicode-bidi:isolate}
+.cd-time small{font-size:.72rem;font-weight:700;color:var(--muted);margin-inline:1px 4px}
+.countdown.live .cd-time{color:var(--bad)}
 .status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.92rem;color:var(--muted)}
 .status a{color:var(--accent)}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-weight:700;font-size:.85rem;background:var(--accent-soft);color:var(--accent)}
@@ -110,7 +118,13 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 <body>
 <main>
   <div class="head">
-    <h1 id="title">הימורי בחירות 2026</h1>
+    <div class="titlebar">
+      <h1 id="title">הימורי בחירות 2026</h1>
+      <div class="countdown" id="countdown" role="timer" aria-live="off" title="סגירת הקלפיות ושידור המדגמים, יום שלישי 27.10 בשעה 22:00">
+        <span class="cd-label">עד המדגמים</span>
+        <span class="cd-time" id="cd-time">–</span>
+      </div>
+    </div>
     <div class="status" id="status"><span class="chip">טוען…</span></div>
   </div>
   <details>
@@ -435,6 +449,26 @@ function vAdmin(){
     if(d.results)$("#r-clear").onclick=()=>run({action:"clearResults"},$("#r-msg"));
   }
 }
+
+/* ---------- countdown to the exit polls ---------- */
+// Polls close and the exit polls air on Tuesday 27.10.2026 at 22:00 Israel time
+// (UTC+2: summer time ends on 25.10).
+const EXIT_POLLS=Date.parse("2026-10-27T22:00:00+02:00");
+function tickCountdown(){
+  const el=$("#countdown"),out=$("#cd-time"),label=el.querySelector(".cd-label");
+  const ms=EXIT_POLLS-Date.now();
+  if(ms<=0){
+    const live=ms>-3*3600e3;
+    el.classList.toggle("live",live);
+    label.textContent=live?"עכשיו":"";
+    out.textContent=live?"המדגמים משודרים":"המדגמים שודרו";
+    return;
+  }
+  const s=Math.floor(ms/1000),dd=Math.floor(s/86400),p=n=>String(n).padStart(2,"0");
+  const clock=`${p(Math.floor(s%86400/3600))}:${p(Math.floor(s%3600/60))}:${p(s%60)}`;
+  out.innerHTML=(dd?`${dd}<small>${dd===1?"יום":"ימים"}</small>`:"")+`<span class="clk">${clock}</span>`;
+}
+tickCountdown();setInterval(tickCountdown,1000);
 
 render();load();
 </script>
