@@ -86,7 +86,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-vi
 .ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}
 .step{display:flex;align-items:center;gap:4px;direction:ltr}
 .step button{width:34px;height:34px;border:1px solid var(--line);background:var(--paper);font-weight:500;line-height:1;transition:transform .1s ease}
-input[type=number],input[type=text],input[type=email],input[type=password],input[type=datetime-local],textarea{background:var(--bg);border:1px solid var(--line);border-radius:0;padding:7px 8px;width:100%}
+input[type=number],input[type=text],input[type=email],input[type=password],input[type=datetime-local],textarea{background:var(--bg);border:1px solid var(--line);border-radius:0;padding:7px 8px;width:100%;font-size:max(16px,1em)}
 input[type=datetime-local]{min-width:0;min-height:42px;display:block}
 input[type=number]{width:62px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -119,6 +119,7 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
+.asname{margin:0 0 4px}
 .mine-link{background:none;border:0;padding:2px 4px;margin:-2px -4px;font:inherit;font-weight:700;color:var(--accent);cursor:pointer;border-radius:6px;text-align:start}
 .mine-link:hover .mine-tag,.mine-link:focus-visible .mine-tag{text-decoration:underline}
 .mine-tag{font-weight:600;font-size:.85em}
@@ -402,13 +403,13 @@ function loginCard(){
   const g=state.data?.googleEnabled,f=state.login;
   const inv=lsGet("wager_join")?'<div class="banner good">הוזמנת לקבוצה. התחבר או הירשם, וההצטרפות תושלם אוטומטית.</div>':"";
   return `${why?`<div class="banner bad">${esc(why)}</div>`:""}${inv}<div class="card login">
-  <p>כדי לשלוח ניחוש צריך להתחבר${g?" עם Google, או עם שם וקוד אישי":" עם שם וקוד אישי"}.</p>
+  <p><b>כניסה או הרשמה</b><br>${g?"עם Google, או עם שם וקוד אישי.":"עם שם וקוד אישי."} נרשמת כבר במכשיר אחר? הקלד את אותו שם ואותו קוד, והניחוש שלך יחכה לך כאן.</p>
   ${g?'<a class="btn primary" href="/api/auth/login">התחברות עם Google</a><div class="or">או עם שם וקוד</div>':""}
   <form id="lf" class="lf" novalidate>
     <label for="lf-name" style="margin-top:0">שם (יופיע בטבלה)</label><input type="text" id="lf-name" name="name" maxlength="30" autocomplete="username" value="${esc(f.name)}">
     <label for="lf-pin">קוד אישי (4 עד 8 ספרות)</label><input type="password" id="lf-pin" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="current-password" dir="ltr">
-    <p class="muted hint">בפעם הראשונה בוחרים שם וקוד. בפעם הבאה נכנסים עם אותו שם וקוד, מכל מכשיר. אם השם כבר תפוס, נבקש ממך לבחור שם אחר.</p>
-    <div class="actions"><button class="btn${g?"":" primary"}" id="lf-go" type="submit">כניסה</button><span id="lf-msg" class="muted" role="status"></span></div>
+    <p class="muted hint">פעם ראשונה? בחר שם וקוד שתזכור. אם השם כבר תפוס, נבקש ממך לבחור שם אחר.</p>
+    <div class="actions"><button class="btn${g?"":" primary"}" id="lf-go" type="submit">כניסה / הרשמה</button><span id="lf-msg" class="muted" role="status"></span></div>
   </form></div>`;
 }
 document.addEventListener("input",e=>{if(e.target.form?.id==="lf"&&e.target.name in state.login)state.login[e.target.name]=e.target.value});
@@ -448,8 +449,8 @@ function vPredict(){
   const brows=BLOCS.map(b=>`<div class="row brow"><span class="n">${esc(b)}</span><span class="tag" data-maj="${esc(b)}"></span><div class="maj" aria-hidden="true"><i data-bar="${esc(b)}"></i><b></b></div>${stepper("data-b",b,d.blocs[b],dis)}</div>`).join("");
   $("#view").innerHTML=`${banner}
   <form class="card" id="f" novalidate>
-    <label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
-    <input type="text" id="nm" maxlength="30" autocomplete="nickname" value="${esc(d.name)}" ${dis||d0.me?.fixedName?"disabled":""}>
+    ${d0.me?.fixedName?`<p class="asname">בטבלה תופיע בתור <b>${esc(d0.me.fixedName)}</b>, השם שאיתו נכנסת.</p>`:`<label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
+    <input type="text" id="nm" maxlength="30" autocomplete="nickname" value="${esc(d.name)}" ${dis?"disabled":""}>`}
     <div class="sec">מנדטים לכל מפלגה <small id="tot"></small></div>${rows}
     <div class="sec">גודל הגושים <small id="btot"></small></div>${brows}
     <div class="sec">אחוז הצבעה</div>
@@ -487,7 +488,7 @@ function vPredict(){
     else d.turnout=v===""?"":Math.max(0,Math.min(100,Math.round(+v*10)/10));
   };
   const val=(attr,key)=>attr==="data-p"?d.seats[key]:attr==="data-b"?d.blocs[key]:d.turnout;
-  $("#nm").oninput=e=>{state.dirty=true;delete msg.dataset.sticky;d.name=e.target.value;upd()};
+  if($("#nm"))$("#nm").oninput=e=>{state.dirty=true;delete msg.dataset.sticky;d.name=e.target.value;upd()};
   $("#view").querySelectorAll("input[type=number]").forEach(i=>{
     const attr=i.hasAttribute("data-p")?"data-p":i.hasAttribute("data-b")?"data-b":"data-t";
     const key=i.getAttribute(attr);
