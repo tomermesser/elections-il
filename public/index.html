@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>הימורי בחירות 2026</title>
+<meta name="description" content="תחרות ניחושי מנדטים בין חברים">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='12' width='24' height='16' rx='3' fill='%232443b0'/%3E%3Crect x='10' y='4' width='12' height='12' rx='1' fill='%23fff' stroke='%232443b0' stroke-width='2'/%3E%3Crect x='9' y='14' width='14' height='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Secular+One&display=swap">
+<style>
+/* Layout: one narrow column, like a ballot slip. Header + status, tabs, then cards. */
+:root{
+  --bg:#eef1f6;--paper:#ffffff;--ink:#172033;--muted:#5b6578;--line:#d8dde8;
+  --accent:#2443b0;--accent-ink:#ffffff;--accent-soft:#e2e8fb;
+  --good:#12784a;--good-soft:#e0f3e9;--warn:#9a5200;--warn-soft:#fbeedb;--bad:#b4232a;--bad-soft:#fbe4e5;
+  --f-display:"Secular One","Assistant",system-ui,sans-serif;
+  --f-body:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1522;--paper:#171f30;--ink:#e7ebf3;--muted:#9ba5b9;--line:#2c3651;
+  --accent:#8aa4ff;--accent-ink:#0b1122;--accent-soft:#1f2a4b;
+  --good:#55d394;--good-soft:#123122;--warn:#f2b45c;--warn-soft:#382811;--bad:#ff8085;--bad-soft:#3b191c;color-scheme:dark}}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 var(--f-body);margin:0}
+[hidden]{display:none!important}
+main{max-width:680px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+h1{font-family:var(--f-display);font-weight:400;font-size:2rem;line-height:1.15;margin:0;text-wrap:balance}
+.head{display:flex;flex-direction:column;gap:8px}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.92rem;color:var(--muted)}
+.status a{color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-weight:700;font-size:.85rem;background:var(--accent-soft);color:var(--accent)}
+.chip.lock{background:var(--warn-soft);color:var(--warn)}
+.chip.done{background:var(--good-soft);color:var(--good)}
+details{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-weight:700}
+details ul{margin:8px 0 2px;padding-inline-start:20px;display:flex;flex-direction:column;gap:3px}
+details p{margin:8px 0 2px;color:var(--muted)}
+nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:4px}
+nav button{border:0;background:transparent;padding:9px 6px;border-radius:9px;font-weight:700;color:var(--muted)}
+nav button.on{background:var(--accent);color:var(--accent-ink)}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:10px 16px;font-weight:700;text-decoration:none;color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:var(--paper)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:800;margin-top:14px;padding-bottom:4px;border-bottom:2px solid var(--ink)}
+.sec:first-child{margin-top:0}
+.sec small{font-weight:600;color:var(--muted);font-size:.85rem;direction:ltr;unicode-bidi:isolate}
+.row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);min-height:46px}
+.row:last-child{border-bottom:0}
+.row .n{flex:1;min-width:0}
+.ok{color:var(--good)}.bad{color:var(--bad)}.muted{color:var(--muted)}
+.step{display:flex;align-items:center;gap:4px;direction:ltr}
+.step button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--bg);font-weight:800;line-height:1}
+input[type=number],input[type=text],input[type=datetime-local],textarea{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 8px;width:100%}
+input[type=number]{width:62px;text-align:center;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input:disabled,textarea:disabled{opacity:.7}
+label{display:block;font-size:.88rem;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.banner{padding:10px 14px;border-radius:12px;background:var(--accent-soft);color:var(--ink);border:1px solid var(--line)}
+.banner.warn{background:var(--warn-soft)}.banner.good{background:var(--good-soft)}.banner.bad{background:var(--bad-soft)}
+.maj{position:relative;flex:0 1 120px;height:8px;background:var(--line);border-radius:6px}
+.maj i{position:absolute;inset-block:0;inset-inline-start:0;background:var(--accent);border-radius:6px}
+.maj b{position:absolute;inset-block:-4px;inset-inline-start:50.83%;width:2px;background:var(--ink)}
+.tag{font-size:.75rem;font-weight:800;color:var(--good);white-space:nowrap}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.rank{width:30px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.pts{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th:first-child,td:first-child{text-align:start;position:sticky;inset-inline-start:0;background:var(--paper)}
+.secrow th{background:var(--bg);color:var(--muted);font-size:.8rem;text-align:start}
+td.hit{color:var(--good);font-weight:800;background:var(--good-soft)}
+td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
+.bar{flex:1;min-width:40px;height:9px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+.avg{font-weight:800;min-width:44px;text-align:end;font-variant-numeric:tabular-nums}.rng{min-width:52px;text-align:end;font-size:.85rem;font-variant-numeric:tabular-nums}
+.confirm{margin-top:10px;padding:12px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft)}
+.login{align-items:flex-start;gap:10px}
+.login p{margin:0}
+.n,td,th{unicode-bidi:plaintext}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="head">
+    <h1 id="title">הימורי בחירות 2026</h1>
+    <div class="status" id="status"><span class="chip">טוען…</span></div>
+  </div>
+  <details>
+    <summary>איך סופרים נקודות</summary>
+    <ul id="rules-list"></ul>
+  </details>
+  <details>
+    <summary>למה אי אפשר לרמות</summary>
+    <p>הניחושים נשמרים בשרת, והשרת לא מוסר לאף אחד את הניחושים של אחרים לפני הנעילה. עד אז רואים רק מי הגיש ומתי.</p>
+    <p>מרגע הנעילה השרת דוחה כל שינוי, ובטבלה מוצגים הניחושים בדיוק כפי שהיו ברגע הנעילה. אחרי הנעילה גם אי אפשר לשנות את חוקי הניקוד.</p>
+    <p>כל משתתף מזוהה לפי חשבון ה-Google שלו. אותו ניחוש מופיע בכל דפדפן ומכשיר, ואי אפשר להגיש פעמיים מאותו חשבון.</p>
+  </details>
+  <nav id="nav"></nav>
+  <div id="view"></div>
+</main>
+<script>
+const BLOCS=["גוש השינוי","גוש נתניהו","מפלגות ערביות"];
+const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null};
+const loginError=new URLSearchParams(location.search).get("login_error");
+if(loginError)history.replaceState(null,"","/");
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sum=o=>Object.values(o||{}).reduce((a,b)=>a+(+b||0),0);
+const fmtTime=ts=>{try{return new Date(ts).toLocaleString("he-IL",{dateStyle:"short",timeStyle:"short"})}catch(e){return""}};
+const cleanName=s=>String(s||"").replace(/\s+/g," ").trim().slice(0,30);
+const cfg=()=>state.data?.config||{parties:[],exact:5,near:2,blocExact:5,blocNear:2,turnPts:3,turnBonus:2};
+const locked=()=>!!state.data?.lockedAt;
+
+async function api(path,body){
+  const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),credentials:"same-origin"});
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw Object.assign(new Error(j.error||"השמירה נכשלה. נסה שוב."),{status:r.status});
+  return j;
+}
+let loading=false;
+async function load(){
+  if(loading)return;loading=true;
+  try{
+    const r=await fetch("/api/state",{cache:"no-store",credentials:"same-origin"});
+    if(!r.ok)throw new Error();
+    state.data=await r.json();state.err=null;
+    if(!state.dirty)state.draft=null;
+  }catch(e){if(!state.data)state.err="אין חיבור לשרת. רענן את הדף ונסה שוב."}
+  loading=false;render(true);
+}
+setInterval(()=>{if(document.visibilityState==="visible")load()},20000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
+
+/* ---------- scoring ---------- */
+function score(p,res,bestTurn){
+  const c=cfg();let t=0;const per={},bl={};let turn="",closest=false;
+  for(const party of c.parties){
+    if(res[party]==null)continue;
+    const d=Math.abs((+p.seats?.[party]||0)-res[party]);
+    if(d===0){t+=+c.exact;per[party]="x"}else if(d===1){t+=+c.near;per[party]="n"}
+  }
+  for(const b of BLOCS){
+    if(res.blocs?.[b]==null)continue;
+    const d=Math.abs((+p.blocs?.[b]||0)-res.blocs[b]);
+    if(d===0){t+=+c.blocExact;bl[b]="x"}else if(d===1){t+=+c.blocNear;bl[b]="n"}
+  }
+  if(res.turnout!=null&&p.turnout!=null){
+    const d=Math.abs(p.turnout-res.turnout);
+    if(d<=1+1e-9){t+=+c.turnPts;turn="x"}
+    if(Math.abs(d-bestTurn)<1e-9){closest=true;t+=+c.turnBonus}
+  }
+  return{total:t,per,bl,turn,closest};
+}
+const bestTurn=(list,res)=>res?.turnout!=null&&list.length?Math.min(...list.map(p=>Math.abs(p.turnout-res.turnout))):Infinity;
+function scored(){
+  const res=state.data.results,list=state.data.picks||[];if(!res)return null;
+  const best=bestTurn(list,res);
+  const rows=list.map(p=>({...p,s:score(p,res,best)})).sort((a,b)=>b.s.total-a.s.total);
+  let rank=0;rows.forEach((r,i)=>{if(i===0||r.s.total!==rows[i-1].s.total)rank=i+1;r.rank=rank});
+  return rows;
+}
+
+/* ---------- render ---------- */
+function renderHead(){
+  const c=cfg(),d=state.data;
+  $("#title").textContent=c.title||"הימורי בחירות 2026";document.title=c.title||"הימורי בחירות 2026";
+  if(!d){$("#status").innerHTML=`<span class="chip">${state.err?"אין חיבור":"טוען…"}</span>`}
+  else{
+    const n=locked()?(d.picks||[]).length:d.entrants.length;
+    const chip=d.results?'<span class="chip done">התוצאות פורסמו</span>':locked()?'<span class="chip lock">ההימורים נעולים</span>':'<span class="chip">פתוח להימורים</span>';
+    const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:c.deadline?`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline))}</span>`:"";
+    const who=d.me?`<span>· ${esc(d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
+    $("#status").innerHTML=`${chip}<span>${n} ${n===1?"משתתף":"משתתפים"}</span>${when}${who}`;
+  }
+  $("#rules-list").innerHTML=[
+    `מספר מנדטים מדויק למפלגה: ${c.exact} נקודות`,
+    `הפרש של מנדט אחד: ${c.near} נקודות`,
+    `גודל גוש מדויק: ${c.blocExact} נקודות לכל גוש`,
+    `גוש בהפרש של מנדט אחד: ${c.blocNear} נקודות`,
+    `אחוז הצבעה בטווח של 1%: ${c.turnPts} נקודות`,
+    `הניחוש הכי קרוב לאחוז ההצבעה: בונוס ${c.turnBonus} (בתיקו כולם מקבלים)`
+  ].map(s=>`<li>${esc(s)}</li>`).join("");
+  const tabs=[["predict","הניחוש שלי"],["board","טבלה"],["stats","סטטיסטיקה"],["picks","כל הניחושים"]];
+  if(d?.me?.isAdmin)tabs.push(["admin","ניהול"]);
+  $("#nav").innerHTML=tabs.map(([k,l])=>`<button class="${state.tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
+  $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{state.tab=b.dataset.t;state.confirmLock=false;render()});
+}
+let updPredict=null;
+function render(soft){
+  renderHead();
+  if(!state.data){$("#view").innerHTML=state.err?`<div class="banner bad">${esc(state.err)}</div>`:'<div class="card muted">טוען…</div>';return}
+  const lockedChanged=state.lastLocked!==locked();
+  if(soft&&!lockedChanged&&$("#view").contains(document.activeElement)&&(state.tab==="predict"||state.tab==="admin")){updPredict?.();return}
+  state.lastLocked=locked();updPredict=null;
+  (({predict:vPredict,board:vBoard,stats:vStats,picks:vPicks,admin:vAdmin})[state.tab]||vPredict)();
+}
+
+function loginCard(){
+  const why={state:"ההתחברות פג תוקפה, נסה שוב.",token:"Google לא אישר את ההתחברות, נסה שוב.",verify:"לא הצלחנו לאמת את החשבון, נסה שוב.",email:"צריך חשבון Google עם כתובת מייל מאומתת.",server:"שגיאת שרת בהתחברות, נסה שוב."}[loginError]||"";
+  return `${why?`<div class="banner bad">${esc(why)}</div>`:""}<div class="card login"><p>כדי לשלוח ניחוש צריך להתחבר עם Google. נשמור רק את כתובת המייל, כדי לזהות אותך מכל מכשיר.</p><a class="btn primary" href="/api/auth/login">התחברות עם Google</a></div>`;
+}
+
+function stepper(attr,key,val,dis,step=1,max=120){
+  return `<div class="step"><button type="button" data-dec="${esc(key)}" data-a="${attr}" aria-label="פחות" ${dis?"disabled":""}>−</button><input type="number" min="0" max="${max}" step="${step}" inputmode="${step===1?"numeric":"decimal"}" id="${attr}-${esc(key)}" ${attr}="${esc(key)}" value="${esc(val??"")}" ${dis?"disabled":""}><button type="button" data-inc="${esc(key)}" data-a="${attr}" aria-label="יותר" ${dis?"disabled":""}>+</button></div>`;
+}
+
+function vPredict(){
+  const d0=state.data,c=cfg(),mine=d0.myPick;
+  if(!d0.me&&!locked()){$("#view").innerHTML=loginCard();return}
+  if(!state.draft){
+    state.draft={name:mine?.name||cleanName(d0.me?.googleName),seats:{},blocs:{},turnout:mine?.turnout??""};
+    c.parties.forEach(k=>state.draft.seats[k]=+(mine?.seats?.[k]??0)||0);
+    BLOCS.forEach(b=>state.draft.blocs[b]=+(mine?.blocs?.[b]??0)||0);
+  }
+  const d=state.draft,dis=locked()||!d0.me;
+  let banner="";
+  if(locked()){
+    const counted=(d0.picks||[]).some(p=>p.mine);
+    banner=!d0.me?'<div class="banner warn">ההימורים נעולים. התחבר כדי לראות את הניחוש שלך.</div>':counted?'<div class="banner good">ההימורים נעולים. הניחוש שלך נספר ✓</div>':'<div class="banner warn">ההימורים ננעלו ולא הגשת ניחוש בזמן.</div>';
+  }else if(mine){
+    banner=`<div class="banner good">הניחוש שלך נשמר (${esc(fmtTime(mine.updatedAt))}). אפשר לעדכן אותו עד הנעילה.</div>`;
+  }
+  if(locked()&&!mine){$("#view").innerHTML=banner+(d0.me?"":loginCard());return}
+  const rows=c.parties.map(p=>`<div class="row"><span class="n">${esc(p)}</span>${stepper("data-p",p,d.seats[p],dis)}</div>`).join("");
+  const brows=BLOCS.map(b=>`<div class="row"><span class="n">${esc(b)}</span><span class="tag" data-maj="${esc(b)}"></span><div class="maj" aria-hidden="true"><i data-bar="${esc(b)}"></i><b></b></div>${stepper("data-b",b,d.blocs[b],dis)}</div>`).join("");
+  $("#view").innerHTML=`${banner}
+  <form class="card" id="f" novalidate>
+    <label for="nm" style="margin-top:0">השם שיופיע בטבלה</label>
+    <input type="text" id="nm" maxlength="30" autocomplete="nickname" value="${esc(d.name)}" ${dis?"disabled":""}>
+    <div class="sec">מנדטים לכל מפלגה <small id="tot"></small></div>${rows}
+    <div class="sec">גודל הגושים <small id="btot"></small></div>${brows}
+    <div class="sec">אחוז הצבעה</div>
+    <div class="row"><span class="n">אחוז ההצבעה הארצי (%)</span>${stepper("data-t","turnout",d.turnout,dis,0.1,100)}</div>
+    ${dis?"":`<div class="actions"><button class="btn primary" id="save" type="submit">${mine?"עדכן ניחוש":"שלח ניחוש"}</button><span id="msg" class="muted" role="status"></span></div>`}
+  </form>`;
+  const msg=$("#msg");
+  const nameTaken=()=>{const n=cleanName(d.name).toLowerCase();return !!n&&d0.entrants.some(e=>!e.mine&&cleanName(e.name).toLowerCase()===n)};
+  const upd=()=>{
+    const t=sum(d.seats),b=sum(d.blocs);
+    $("#tot").textContent=`${t} / 120`;$("#tot").className=t===120?"ok":"bad";
+    $("#btot").textContent=`${b} / 120`;$("#btot").className=b===120?"ok":"bad";
+    BLOCS.forEach(k=>{const v=d.blocs[k]||0;document.querySelector(`[data-bar="${CSS.escape(k)}"]`).style.width=Math.min(100,v/120*100)+"%";document.querySelector(`[data-maj="${CSS.escape(k)}"]`).textContent=v>=61?"רוב":""});
+    if(dis)return;
+    const tn=d.turnout!==""&&+d.turnout>0&&+d.turnout<=100;
+    let why="";
+    if(!cleanName(d.name))why="צריך למלא שם";
+    else if(nameTaken())why="השם הזה כבר תפוס, בחר שם אחר";
+    else if(t!==120)why=`המפלגות מסתכמות ב-${t}, צריך 120`;
+    else if(b!==120)why=`הגושים מסתכמים ב-${b}, צריך 120`;
+    else if(!tn)why="צריך למלא אחוז הצבעה בין 0 ל-100";
+    $("#save").disabled=!!why;
+    if(!msg.dataset.sticky)msg.textContent=why;
+  };
+  updPredict=upd;
+  if(dis){upd();return}
+  const clampSeat=v=>Math.max(0,Math.min(120,Math.round(+v||0)));
+  const set=(attr,key,v)=>{
+    state.dirty=true;delete msg.dataset.sticky;
+    if(attr==="data-p")d.seats[key]=clampSeat(v);
+    else if(attr==="data-b")d.blocs[key]=clampSeat(v);
+    else d.turnout=v===""?"":Math.max(0,Math.min(100,Math.round(+v*10)/10));
+  };
+  const val=(attr,key)=>attr==="data-p"?d.seats[key]:attr==="data-b"?d.blocs[key]:d.turnout;
+  $("#nm").oninput=e=>{state.dirty=true;delete msg.dataset.sticky;d.name=e.target.value;upd()};
+  $("#view").querySelectorAll("input[type=number]").forEach(i=>{
+    const attr=i.hasAttribute("data-p")?"data-p":i.hasAttribute("data-b")?"data-b":"data-t";
+    const key=i.getAttribute(attr);
+    i.oninput=()=>{set(attr,key,i.value);upd()};
+    i.onblur=()=>{i.value=val(attr,key)};
+  });
+  $("#view").querySelectorAll("[data-inc],[data-dec]").forEach(btn=>btn.onclick=()=>{
+    const attr=btn.dataset.a,key=btn.dataset.inc??btn.dataset.dec,dir=btn.dataset.inc!=null?1:-1;
+    const cur=attr==="data-t"&&d.turnout===""?(dir>0?69.9:0):val(attr,key);
+    set(attr,key,(+cur||0)+dir*(attr==="data-t"?0.1:1));
+    document.getElementById(`${attr}-${key}`).value=val(attr,key);upd();
+  });
+  $("#f").onsubmit=async e=>{
+    e.preventDefault();upd();if($("#save").disabled)return;
+    $("#save").disabled=true;msg.dataset.sticky="1";msg.textContent="שומר…";
+    try{
+      await api("/api/pick",{name:cleanName(d.name),seats:d.seats,blocs:d.blocs,turnout:+d.turnout});
+      state.dirty=false;msg.textContent="נשמר ✓";await load();
+    }catch(err){
+      msg.textContent=err.message;$("#save").disabled=false;
+      if(err.status===423||err.status===401){state.dirty=false;load()}
+    }
+  };
+  upd();
+}
+
+function vBoard(){
+  const d=state.data;
+  if(!locked()){
+    if(!d.entrants.length){$("#view").innerHTML='<div class="card muted">עוד אף אחד לא הגיש ניחוש. היה הראשון.</div>';return}
+    $("#view").innerHTML=`<div class="banner">הניחושים חסויים עד הנעילה. כאן רואים רק מי כבר הגיש.</div><div class="card">${d.entrants.map(e=>`<div class="row"><span class="n">${esc(e.name)}${e.mine?" (אתה)":""}</span><span class="muted">${esc(fmtTime(e.updatedAt))}</span></div>`).join("")}</div>`;return;
+  }
+  const list=d.picks||[];
+  if(!d.results){
+    $("#view").innerHTML=`<div class="banner">התוצאות עוד לא פורסמו.</div><div class="card">${list.map(p=>`<div class="row"><span class="n">${esc(p.name)}${p.mine?" (אתה)":""}</span></div>`).join("")||'<span class="muted">אף אחד לא הגיש לפני הנעילה.</span>'}</div>`;return;
+  }
+  const rows=scored();
+  $("#view").innerHTML=`<div class="card">${rows.map(r=>`<div class="row"><span class="rank">${r.rank}</span><span class="n">${r.rank===1?"🏆 ":""}${esc(r.name)}${r.mine?" (אתה)":""}</span><span class="pts">${r.s.total}</span></div>`).join("")||'<span class="muted">אין ניחושים.</span>'}</div>`;
+}
+
+function vStats(){
+  if(!locked()){$("#view").innerHTML='<div class="banner">📊 הסטטיסטיקה תופיע אחרי שההימורים יינעלו.</div>';return}
+  const list=state.data.picks||[],res=state.data.results,c=cfg();
+  if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
+  const stat=f=>{const v=list.map(p=>+f(p)||0);return{a:v.reduce((x,y)=>x+y,0)/v.length,lo:Math.min(...v),hi:Math.max(...v)}};
+  const block=(items,max,actual)=>items.sort((x,y)=>y.s.a-x.s.a).map(it=>`<div class="row"><span class="n">${esc(it.k)}</span><div class="bar"><i style="width:${Math.min(100,it.s.a/max*100)}%"></i></div><span class="avg">${it.s.a.toFixed(1)}</span><span class="rng muted">${it.s.lo}–${it.s.hi}</span>${actual?`<span class="rng">${esc(actual(it.k))}</span>`:""}</div>`).join("");
+  const ps=c.parties.map(k=>({k,s:stat(p=>p.seats?.[k])})),bs=BLOCS.map(k=>({k,s:stat(p=>p.blocs?.[k])})),tn=stat(p=>p.turnout);
+  const pmax=Math.max(...ps.map(x=>x.s.a),1),bmax=Math.max(...bs.map(x=>x.s.a),1);
+  $("#view").innerHTML=`<div class="card"><p class="muted" style="margin:0">לפי ${list.length} ניחושים. עמודות: ממוצע · הכי נמוך–הכי גבוה${res?" · בפועל":""}.</p>
+  <div class="sec">מנדטים לכל מפלגה</div>${block(ps,pmax,res?k=>res[k]??"–":null)}
+  <div class="sec">גודל הגושים</div>${block(bs,bmax,res?k=>res.blocs?.[k]??"–":null)}
+  <div class="sec">אחוז הצבעה</div><div class="row"><span class="n">ממוצע הניחושים</span><span class="avg">${tn.a.toFixed(1)}%</span><span class="rng muted">${tn.lo}–${tn.hi}</span>${res?.turnout!=null?`<span class="rng">${esc(res.turnout)}%</span>`:""}</div></div>`;
+}
+
+function vPicks(){
+  if(!locked()){$("#view").innerHTML='<div class="banner">🙈 הניחושים של כולם ייחשפו רק אחרי הנעילה, כדי שאף אחד לא יוכל להעתיק.</div>';return}
+  const res=state.data.results,list=state.data.picks||[],c=cfg();
+  if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
+  const best=bestTurn(list,res);
+  const sc=list.map(p=>res?score(p,res,best):{per:{},bl:{},turn:""});
+  const cols=list.length+(res?2:1),cls=x=>x==="x"?"hit":x==="n"?"near":"";
+  const head=`<tr><th></th>${res?"<th>בפועל</th>":""}${list.map(p=>`<th>${esc(p.name)}</th>`).join("")}</tr>`;
+  const sec=t=>`<tr class="secrow"><th colspan="${cols}">${t}</th></tr>`;
+  const prow=c.parties.map(k=>`<tr><td>${esc(k)}</td>${res?`<td>${esc(res[k]??"–")}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].per[k])}">${esc(p.seats?.[k]??0)}</td>`).join("")}</tr>`).join("");
+  const brow=BLOCS.map(k=>`<tr><td>${esc(k)}</td>${res?`<td>${esc(res.blocs?.[k]??"–")}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].bl[k])}">${esc(p.blocs?.[k]??0)}</td>`).join("")}</tr>`).join("");
+  const trow=`<tr><td>אחוז הצבעה</td>${res?`<td>${res.turnout!=null?esc(res.turnout)+"%":"–"}</td>`:""}${list.map((p,i)=>`<td class="${cls(sc[i].turn)}">${esc(p.turnout)}%${sc[i].closest?" ⭐":""}</td>`).join("")}</tr>`;
+  $("#view").innerHTML=`<div class="card scroll"><table>${head}${sec("מפלגות")}${prow}${sec("גושים")}${brow}${sec("אחוז הצבעה")}${trow}</table></div>${res?'<p class="muted" style="margin:0">ירוק = מדויק (באחוז הצבעה: בטווח 1%) · כתום = הפרש של מנדט אחד · ⭐ = הכי קרוב לאחוז ההצבעה</p>':""}`;
+}
+
+function toLocalInput(iso){if(!iso)return"";const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+function vAdmin(){
+  const d=state.data;
+  if(!d.me?.isAdmin){state.tab="predict";return vPredict()}
+  const c=cfg(),r=d.results||{},L=locked(),hasEntries=d.entrants.length>0;
+  const num=(id,v)=>`<input type="number" id="${id}" min="0" max="100" value="${esc(v??"")}" ${L?"disabled":""}>`;
+  const resRows=c.parties.map((p,i)=>`<div class="row"><span class="n">${esc(p)}</span><input type="number" min="0" max="120" id="r-p-${i}" data-r="${esc(p)}" value="${esc(r[p]??"")}"></div>`).join("");
+  const bRows=BLOCS.map((b,i)=>`<div class="row"><span class="n">${esc(b)}</span><input type="number" min="0" max="120" id="r-b-${i}" data-rb="${esc(b)}" value="${esc(r.blocs?.[b]??"")}"></div>`).join("");
+  $("#view").innerHTML=`<div class="card">
+    <div class="sec">הגדרות</div>
+    ${L?'<p class="muted" style="margin:6px 0">ההגדרות קפואות מרגע הנעילה, כדי שאי אפשר יהיה לשנות את חוקי הניקוד בדיעבד.</p>':""}
+    <label for="a-title">כותרת</label><input type="text" id="a-title" maxlength="60" value="${esc(c.title)}" ${L?"disabled":""}>
+    <label for="a-deadline">נעילה אוטומטית (לא חובה)</label><input type="datetime-local" id="a-deadline" value="${esc(toLocalInput(c.deadline))}" ${L?"disabled":""}>
+    <label for="a-x">מנדטים: נקודות על ניחוש מדויק</label>${num("a-x",c.exact)}
+    <label for="a-n">מנדטים: נקודות על הפרש של 1</label>${num("a-n",c.near)}
+    <label for="a-bx">גושים: נקודות על ניחוש מדויק</label>${num("a-bx",c.blocExact)}
+    <label for="a-bn">גושים: נקודות על הפרש של 1</label>${num("a-bn",c.blocNear)}
+    <label for="a-tp">אחוז הצבעה: נקודות על טווח של 1%</label>${num("a-tp",c.turnPts)}
+    <label for="a-tb">אחוז הצבעה: בונוס לניחוש הכי קרוב</label>${num("a-tb",c.turnBonus)}
+    <label for="a-p">מפלגות (אחת בכל שורה)${hasEntries?" · אי אפשר לשנות אחרי שמישהו הגיש":""}</label>
+    <textarea id="a-p" rows="9" ${L||hasEntries?"disabled":""}>${esc(c.parties.join("\n"))}</textarea>
+    ${L?"":'<div class="actions"><button class="btn primary" id="a-save">שמור הגדרות</button><span id="a-msg" class="muted" role="status"></span></div>'}
+  </div>
+  <div class="card">
+    <div class="sec">נעילת ההימורים</div>
+    ${L?`<p style="margin:6px 0">ההימורים ננעלו ב-${esc(fmtTime(d.lockedAt))}. ${(d.picks||[]).length} ניחושים נספרים. הנעילה סופית.</p>`
+    :`<p class="muted" style="margin:6px 0">אחרי הנעילה השרת לא מקבל יותר ניחושים או שינויים, והניחושים של כולם נחשפים. אי אפשר לבטל נעילה.</p>
+      ${state.confirmLock?`<div class="confirm"><b>לנעול עכשיו?</b> ${d.entrants.length} ניחושים יינעלו. מי שלא הגיש עד עכשיו לא יוכל להשתתף.<div class="actions"><button class="btn danger" id="lock-yes">כן, נעל</button><button class="btn" id="lock-no">ביטול</button></div></div>`
+      :`<div class="actions"><button class="btn" id="lock">🔒 נעל עכשיו</button></div>`}`}
+  </div>
+  ${L?`<div class="card">
+    <div class="sec">תוצאות רשמיות</div><p class="muted" style="margin:6px 0">שדה ריק לא נספר.</p>
+    <div class="sec">מפלגות</div>${resRows}
+    <div class="sec">גושים</div>${bRows}
+    <div class="sec">אחוז הצבעה</div><div class="row"><span class="n">אחוז ההצבעה (%)</span><input type="number" id="r-tn" min="0" max="100" step="0.1" value="${esc(r.turnout??"")}"></div>
+    <div class="actions"><button class="btn primary" id="r-save">פרסם תוצאות</button>${d.results?'<button class="btn" id="r-clear">הסתר תוצאות</button>':""}<span id="r-msg" class="muted" role="status"></span></div>
+  </div>`:""}`;
+  const run=async(body,msgEl)=>{try{await api("/api/admin",body);if(msgEl)msgEl.textContent="נשמר ✓";await load()}catch(e){if(msgEl)msgEl.textContent=e.message;else alertBox(e.message)}};
+  const alertBox=m=>{const b=document.createElement("div");b.className="banner bad";b.textContent=m;$("#view").prepend(b)};
+  if(!L){
+    $("#a-save").onclick=()=>{
+      const dl=$("#a-deadline").value;
+      const body={action:"settings",title:$("#a-title").value,deadline:dl?new Date(dl).toISOString():null,exact:+$("#a-x").value,near:+$("#a-n").value,blocExact:+$("#a-bx").value,blocNear:+$("#a-bn").value,turnPts:+$("#a-tp").value,turnBonus:+$("#a-tb").value};
+      if(!hasEntries)body.parties=$("#a-p").value.split("\n");
+      run(body,$("#a-msg"));
+    };
+    if(state.confirmLock){
+      $("#lock-no").onclick=()=>{state.confirmLock=false;render()};
+      $("#lock-yes").onclick=async()=>{$("#lock-yes").disabled=true;state.confirmLock=false;await run({action:"lock"})};
+    }else $("#lock").onclick=()=>{state.confirmLock=true;render()};
+  }else{
+    $("#r-save").onclick=()=>{
+      const o={blocs:{}};
+      document.querySelectorAll("input[data-r]").forEach(i=>{if(i.value!=="")o[i.dataset.r]=+i.value});
+      document.querySelectorAll("input[data-rb]").forEach(i=>{if(i.value!=="")o.blocs[i.dataset.rb]=+i.value});
+      if($("#r-tn").value!=="")o.turnout=+$("#r-tn").value;
+      run({action:"results",results:o},$("#r-msg"));
+    };
+    if(d.results)$("#r-clear").onclick=()=>run({action:"clearResults"},$("#r-msg"));
+  }
+}
+
+render();load();
+</script>
+</body>
+</html>
