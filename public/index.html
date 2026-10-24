@@ -3,8 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!--og-->
 <title>הימורי בחירות 2026</title>
-<meta name="description" content="תחרות ניחושי מנדטים בין חברים">
+<meta name="description" content="נחשו כמה מנדטים כל מפלגה תקבל בבחירות לכנסת ה-26, ותראו מי מהחברים צדק. ההימורים ננעלים ביום שלישי 27.10 ב-08:00.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="he_IL">
+<meta property="og:site_name" content="הימורי בחירות 2026">
+<meta property="og:title" content="הימורי בחירות 2026">
+<meta property="og:description" content="נחשו כמה מנדטים כל מפלגה תקבל בבחירות לכנסת ה-26, ותראו מי מהחברים צדק. ההימורים ננעלים ביום שלישי 27.10 ב-08:00.">
+<meta property="og:image" content="https://elections-il-drab.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<!--/og-->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='12' width='24' height='16' rx='3' fill='%232443b0'/%3E%3Crect x='10' y='4' width='12' height='12' rx='1' fill='%23fff' stroke='%232443b0' stroke-width='2'/%3E%3Crect x='9' y='14' width='14' height='2' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -105,6 +116,10 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .gname select{font:inherit;font-weight:800;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:5px 8px;max-width:100%}
 .gname small{font-weight:600;color:var(--muted);margin-inline-start:6px}
 .btn.sm{padding:6px 12px;font-size:.9rem}
+.gcount{background:none;border:0;padding:2px 4px;font:inherit;font-size:.85rem;font-weight:700;color:var(--accent);border-radius:6px}
+.mlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.mlist li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.mlist li:last-child{border-bottom:0}
 .gpanel{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
 .gpanel .line{display:flex;gap:8px;align-items:center}
 .gpanel input{flex:1;min-width:0}
@@ -265,9 +280,12 @@ function renderGroups(){
   if(document.activeElement?.tagName==="INPUT"&&box.contains(document.activeElement))return; // don't wipe a field being typed in
   const gs=d.groups||[],g=gs.find(x=>x.id===d.group?.id);
   const pick=gs.length>1?`<select id="g-sel" aria-label="קבוצה">${gs.map(x=>`<option value="${esc(x.id)}" ${x.id===g?.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`:g?esc(g.name):"";
-  const head=g?`<span class="gname">${pick}<small>${g.members} ${g.members===1?"חבר":"חברים"} בקבוצה</small></span>`:`<span class="gname">אתה עוד לא בקבוצה</span>`;
+  const head=g?`<span class="gname">${pick}<button type="button" class="gcount" id="g-mem" aria-expanded="${state.gpanel==="members"}">${g.members} ${g.members===1?"חבר":"חברים"} בקבוצה <span aria-hidden="true">${state.gpanel==="members"?"▴":"▾"}</span></button></span>`:`<span class="gname">אתה עוד לא בקבוצה</span>`;
   let panel="";
-  if(state.gpanel==="invite"&&g){
+  if(state.gpanel==="members"&&g){
+    const ms=d.group?.members||[],done=ms.filter(m=>m.submitted).length;
+    panel=`<div class="gpanel"><span class="muted">${done} מתוך ${ms.length} כבר הגישו ניחוש.</span><ul class="mlist">${ms.map(m=>`<li><span class="n">${m.name?esc(m.name):'<span class="muted">עוד בלי שם</span>'}${m.me?" (אתה)":""}</span>${m.submitted?'<span class="ok">הגיש ✓</span>':'<span class="muted">עוד לא הגיש</span>'}</li>`).join("")}</ul></div>`;
+  }else if(state.gpanel==="invite"&&g){
     const canRotate=g.role==="admin"||d.me.isAdmin;
     panel=`<div class="gpanel"><span class="muted">שלח את הלינק לחברים. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}" אחרי שהוא נרשם.</span>
     <div class="line"><input type="text" id="g-link" readonly dir="ltr" value="${esc(inviteUrl(g.code))}"><button class="btn sm primary" id="g-copy">העתק</button></div>
@@ -281,6 +299,7 @@ function renderGroups(){
   <div class="gtop">${head}${g?`<button class="btn sm" id="g-inv">הזמנת חברים</button><button class="btn sm" id="g-newbtn">קבוצה חדשה</button>`:""}</div>${panel}<span id="g-msg" class="muted" role="status"></span>`;
   const msg=$("#g-msg");
   $("#g-sel")?.addEventListener("change",e=>{state.group=e.target.value;state.joinMsg="";lsSet("wager_group",state.group);load()});
+  $("#g-mem")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="members"?null:"members";state.joinMsg="";renderGroups()});
   $("#g-inv")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="invite"?null:"invite";state.joinMsg="";renderGroups()});
   $("#g-newbtn")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="new"?null:"new";state.joinMsg="";renderGroups()});
   $("#g-copy")?.addEventListener("click",async()=>{

@@ -20,7 +20,15 @@ export default async function handler(req, res) {
     const groups = user ? await myGroups(sql, user.email) : [];
     const asked = new URL(req.url, "http://x").searchParams.get("group");
     const group = groups.find((g) => g.id === asked) || groups[0] || null;
-    const members = group ? new Set((await sql`select member from memberships where group_id = ${group.id}`).map((m) => m.member)) : new Set();
+    // Group roster: a member's name is the one on their pick, else the name they signed in with.
+    const roster = group ? await sql`
+      select m.member, p.name as pick_name, a.display_name
+      from memberships m
+      left join picks p on p.email = m.member
+      left join accounts a on 'pin:' || a.email = m.member
+      where m.group_id = ${group.id}
+      order by m.joined_at` : [];
+    const members = new Set(roster.map((m) => m.member));
     const rows = all.filter((r) => members.has(r.email));
     const entrants = rows.map((r) => ({ name: r.name, updatedAt: r.updated_at, mine: !!user && r.email === user.email }));
     let fixedName = null;
@@ -44,7 +52,10 @@ export default async function handler(req, res) {
       picksClose: PICKS_CLOSE,
       pollsClose: POLLS_CLOSE,
       groups: groups.map((g) => ({ id: g.id, name: g.name, code: g.code, role: g.role, members: g.members })),
-      group: group ? { id: group.id, name: group.name } : null,
+      group: group ? {
+        id: group.id, name: group.name,
+        members: roster.map((m) => ({ name: m.pick_name || m.display_name || "", submitted: !!m.pick_name, me: !!user && m.member === user.email }))
+      } : null,
       totalEntrants: all.length,
       myPick: mineRow ? { ...asPick(mineRow), updatedAt: mineRow.updated_at } : null,
       entrants,
