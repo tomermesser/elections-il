@@ -99,6 +99,16 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
+.gbar{display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.gtop{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.gname{font-weight:800;flex:1 1 220px;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.gname select{font:inherit;font-weight:800;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:5px 8px;max-width:100%}
+.gname small{font-weight:600;color:var(--muted);margin-inline-start:6px}
+.btn.sm{padding:6px 12px;font-size:.9rem}
+.gpanel{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.gpanel .line{display:flex;gap:8px;align-items:center}
+.gpanel input{flex:1;min-width:0}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-weight:700;text-decoration:underline;cursor:pointer}
 .pn{display:flex;align-items:center;gap:8px;min-width:0;direction:rtl;unicode-bidi:isolate}
 .pt{min-width:0}
 /* A tiny ballot slip: the party's letters, like on the paper in the booth. */
@@ -131,6 +141,7 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
     </div>
     <div class="status" id="status"><span class="chip">טוען…</span></div>
   </div>
+  <div id="groupbar" hidden></div>
   <details>
     <summary>איך סופרים נקודות</summary>
     <ul id="rules-list"></ul>
@@ -139,13 +150,18 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
   <div id="view"></div>
 </main>
 <script>
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
 const BLOCS=["גוש השינוי","גוש נתניהו","מפלגות ערביות"];
 // Ballot letters approved by the Central Elections Committee (27.9.2026).
 const LETTERS={"הליכוד":"מחל","יחד (בנט ולפיד)":"רק","ישר!":"דרך","ישראל ביתנו":"ל","ש״ס":"שס","יהדות התורה":"ג","הציונות הדתית":"ט","עוצמה יהודית":"ב","הדמוקרטים":"אמת","רע״מ":"עם","הרשימה המשותפת":"ודם","המילואימניקים והכלכלית (הנדל וזליכה)":"די","עמך ישראל (וינטר)":"ך"};
 const pname=p=>{const l=LETTERS[p];return `<span class="pn">${l?`<span class="slip" title="אותיות הפתק: ${esc(l)}">${esc(l)}</span>`:""}<span class="pt">${esc(p)}</span></span>`};
-const state={data:null,err:null,tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null,login:{name:""}};
-const loginError=new URLSearchParams(location.search).get("login_error");
-if(loginError)history.replaceState(null,"","/");
+const state={data:null,err:null,gpanel:null,group:lsGet("wager_group"),joinMsg:"",tab:"predict",draft:null,dirty:false,confirmLock:false,lastLocked:null,login:{name:""}};
+const qs=new URLSearchParams(location.search);
+const loginError=qs.get("login_error");
+// An invite link (?join=CODE) is kept until the visitor is signed in, then used once.
+if(qs.get("join"))lsSet("wager_join",qs.get("join"));
+if(loginError||qs.get("join"))history.replaceState(null,"","/");
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -165,14 +181,23 @@ let loading=false;
 async function load(){
   if(loading)return;loading=true;
   try{
-    const r=await fetch("/api/state",{cache:"no-store",credentials:"same-origin"});
+    const r=await fetch("/api/state"+(state.group?"?group="+encodeURIComponent(state.group):""),{cache:"no-store",credentials:"same-origin"});
     if(!r.ok)throw new Error();
     state.data=await r.json();state.err=null;
+    state.group=state.data.group?.id||null;lsSet("wager_group",state.group);
     if(state.data.pollsClose)EXIT_POLLS=Date.parse(state.data.pollsClose);
     if(state.data.picksClose)PICKS_CLOSE=Date.parse(state.data.picksClose);
     if(!state.dirty)state.draft=null;
   }catch(e){if(!state.data)state.err="אין חיבור לשרת. רענן את הדף ונסה שוב."}
-  loading=false;render(true);
+  loading=false;
+  if(state.data?.me&&lsGet("wager_join")){joinPending();return}
+  render(true);
+}
+async function joinPending(){
+  const code=lsGet("wager_join");lsSet("wager_join",null);
+  try{const j=await api("/api/groups",{action:"join",code});state.group=j.groupId;state.joinMsg=`הצטרפת לקבוצה "${j.name}" ✓`}
+  catch(e){state.joinMsg=e.message}
+  state.tab="board";await load();
 }
 setInterval(()=>{if(document.visibilityState==="visible")load()},20000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
@@ -226,11 +251,51 @@ function renderHead(){
     `אחוז הצבעה בטווח של 1%: ${c.turnPts} נקודות`,
     `הניחוש הכי קרוב לאחוז ההצבעה: בונוס ${c.turnBonus} (בתיקו כולם מקבלים)`
   ].map(s=>`<li>${esc(s)}</li>`).join("");
+  renderGroups();
   const tabs=[["predict","הניחוש שלי"],["board","טבלה"],["stats","סטטיסטיקה"],["picks","כל הניחושים"]];
   if(d?.me?.isAdmin)tabs.push(["admin","ניהול"]);
   $("#nav").innerHTML=tabs.map(([k,l])=>`<button class="${state.tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
   $("#nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{state.tab=b.dataset.t;state.confirmLock=false;render()});
 }
+function inviteUrl(code){return `${location.origin}/?join=${code}`}
+function renderGroups(){
+  const box=$("#groupbar"),d=state.data;
+  if(!d?.me){box.hidden=true;return}
+  box.hidden=false;
+  if(document.activeElement?.tagName==="INPUT"&&box.contains(document.activeElement))return; // don't wipe a field being typed in
+  const gs=d.groups||[],g=gs.find(x=>x.id===d.group?.id);
+  const pick=gs.length>1?`<select id="g-sel" aria-label="קבוצה">${gs.map(x=>`<option value="${esc(x.id)}" ${x.id===g?.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`:g?esc(g.name):"";
+  const head=g?`<span class="gname">${pick}<small>${g.members} ${g.members===1?"חבר":"חברים"}</small></span>`:`<span class="gname">אתה עוד לא בקבוצה</span>`;
+  let panel="";
+  if(state.gpanel==="invite"&&g){
+    const canRotate=g.role==="admin"||d.me.isAdmin;
+    panel=`<div class="gpanel"><span class="muted">שלח את הלינק לחברים. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}" אחרי שהוא נרשם.</span>
+    <div class="line"><input type="text" id="g-link" readonly dir="ltr" value="${esc(inviteUrl(g.code))}"><button class="btn sm primary" id="g-copy">העתק</button></div>
+    ${canRotate?'<span><button class="linkbtn" id="g-rotate">החלף לינק</button> <span class="muted">(הלינק הישן יפסיק לעבוד)</span></span>':""}</div>`;
+  }else if(state.gpanel==="new"||!g){
+    panel=`<form class="gpanel" id="g-new" novalidate><label for="g-name" style="margin:0">${g?"שם הקבוצה החדשה":"אפשר להצטרף דרך לינק הזמנה מחבר, או לפתוח קבוצה משלך:"}</label>
+    <div class="line"><input type="text" id="g-name" maxlength="40" placeholder="למשל: החבר׳ה מהעבודה"><button class="btn sm primary" type="submit">פתח קבוצה</button></div></form>`;
+  }
+  box.className="gbar";
+  box.innerHTML=`${state.joinMsg?`<div class="banner ${state.joinMsg.includes("✓")?"good":"bad"}">${esc(state.joinMsg)}</div>`:""}
+  <div class="gtop">${head}${g?`<button class="btn sm" id="g-inv">הזמנת חברים</button><button class="btn sm" id="g-newbtn">קבוצה חדשה</button>`:""}</div>${panel}<span id="g-msg" class="muted" role="status"></span>`;
+  const msg=$("#g-msg");
+  $("#g-sel")?.addEventListener("change",e=>{state.group=e.target.value;state.joinMsg="";lsSet("wager_group",state.group);load()});
+  $("#g-inv")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="invite"?null:"invite";state.joinMsg="";renderGroups()});
+  $("#g-newbtn")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="new"?null:"new";state.joinMsg="";renderGroups()});
+  $("#g-copy")?.addEventListener("click",async()=>{
+    const inp=$("#g-link");
+    try{await navigator.clipboard.writeText(inp.value);msg.textContent="הלינק הועתק ✓"}
+    catch(e){inp.select();msg.textContent="סמן והעתק את הלינק"}
+  });
+  $("#g-rotate")?.addEventListener("click",async()=>{try{await api("/api/groups",{action:"rotate",groupId:g.id});msg.textContent="נוצר לינק חדש ✓";await load()}catch(e){msg.textContent=e.message}});
+  $("#g-new")?.addEventListener("submit",async e=>{
+    e.preventDefault();
+    try{const j=await api("/api/groups",{action:"create",name:$("#g-name").value});state.group=j.groupId;state.gpanel="invite";state.joinMsg="";document.activeElement?.blur();await load()}
+    catch(err){msg.textContent=err.message}
+  });
+}
+const noGroup=()=>state.data?.me&&!state.data.group?'<div class="card muted">הטבלה מוצגת לפי קבוצה. הצטרף לקבוצה דרך לינק הזמנה, או פתח קבוצה חדשה למעלה.</div>':null;
 let updPredict=null;
 function render(soft){
   renderHead();
@@ -244,7 +309,8 @@ function render(soft){
 function loginCard(){
   const why={state:"ההתחברות פג תוקפה, נסה שוב.",token:"Google לא אישר את ההתחברות, נסה שוב.",verify:"לא הצלחנו לאמת את החשבון, נסה שוב.",email:"צריך חשבון Google עם כתובת מייל מאומתת.",server:"שגיאת שרת בהתחברות, נסה שוב."}[loginError]||"";
   const g=state.data?.googleEnabled,f=state.login;
-  return `${why?`<div class="banner bad">${esc(why)}</div>`:""}<div class="card login">
+  const inv=lsGet("wager_join")?'<div class="banner good">הוזמנת לקבוצה. התחבר או הירשם, וההצטרפות תושלם אוטומטית.</div>':"";
+  return `${why?`<div class="banner bad">${esc(why)}</div>`:""}${inv}<div class="card login">
   <p>כדי לשלוח ניחוש צריך להתחבר${g?" עם Google, או עם שם וקוד אישי":" עם שם וקוד אישי"}.</p>
   ${g?'<a class="btn primary" href="/api/auth/login">התחברות עם Google</a><div class="or">או עם שם וקוד</div>':""}
   <form id="lf" class="lf" novalidate>
@@ -356,6 +422,7 @@ function vPredict(){
 
 function vBoard(){
   const d=state.data;
+  if(noGroup()){$("#view").innerHTML=noGroup();return}
   if(!locked()){
     if(!d.entrants.length){$("#view").innerHTML='<div class="card muted">עוד אף אחד לא הגיש ניחוש. היה הראשון.</div>';return}
     $("#view").innerHTML=`<div class="banner">הניחושים חסויים עד הנעילה. כאן רואים רק מי כבר הגיש.</div><div class="card">${d.entrants.map(e=>`<div class="row"><span class="n">${esc(e.name)}${e.mine?" (אתה)":""}</span><span class="muted">${esc(fmtTime(e.updatedAt))}</span></div>`).join("")}</div>`;return;
@@ -369,6 +436,7 @@ function vBoard(){
 }
 
 function vStats(){
+  if(noGroup()){$("#view").innerHTML=noGroup();return}
   if(!locked()){$("#view").innerHTML='<div class="banner">📊 הסטטיסטיקה תופיע אחרי שההימורים יינעלו.</div>';return}
   const list=state.data.picks||[],res=state.data.results,c=cfg();
   if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
@@ -383,6 +451,7 @@ function vStats(){
 }
 
 function vPicks(){
+  if(noGroup()){$("#view").innerHTML=noGroup();return}
   if(!locked()){$("#view").innerHTML='<div class="banner">🙈 הניחושים של כולם ייחשפו רק אחרי הנעילה, כדי שאף אחד לא יוכל להעתיק.</div>';return}
   const res=state.data.results,list=state.data.picks||[],c=cfg();
   if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
@@ -401,7 +470,7 @@ function toLocalInput(iso){if(!iso)return"";const d=new Date(iso);const p=n=>Str
 function vAdmin(){
   const d=state.data;
   if(!d.me?.isAdmin){state.tab="predict";return vPredict()}
-  const c=cfg(),r=d.results||{},L=locked(),hasEntries=d.entrants.length>0;
+  const c=cfg(),r=d.results||{},L=locked(),hasEntries=(d.totalEntrants??d.entrants.length)>0;
   const num=(id,v)=>`<input type="number" id="${id}" min="0" max="100" value="${esc(v??"")}" ${L?"disabled":""}>`;
   const resRows=c.parties.map((p,i)=>`<div class="row"><span class="n">${pname(p)}</span><input type="number" min="0" max="120" id="r-p-${i}" data-r="${esc(p)}" value="${esc(r[p]??"")}"></div>`).join("");
   const bRows=BLOCS.map((b,i)=>`<div class="row"><span class="n">${esc(b)}</span><input type="number" min="0" max="120" id="r-b-${i}" data-rb="${esc(b)}" value="${esc(r.blocs?.[b]??"")}"></div>`).join("");
@@ -424,7 +493,7 @@ function vAdmin(){
     <div class="sec">נעילת ההימורים</div>
     ${L?`<p style="margin:6px 0">ההימורים ננעלו ב-${esc(fmtTime(d.lockedAt))}. ${(d.picks||[]).length} ניחושים נספרים. הנעילה סופית.</p>`
     :`<p class="muted" style="margin:6px 0">אחרי הנעילה השרת לא מקבל יותר ניחושים או שינויים, והניחושים של כולם נחשפים. אי אפשר לבטל נעילה.</p>
-      ${state.confirmLock?`<div class="confirm"><b>לנעול עכשיו?</b> ${d.entrants.length} ניחושים יינעלו. מי שלא הגיש עד עכשיו לא יוכל להשתתף.<div class="actions"><button class="btn danger" id="lock-yes">כן, נעל</button><button class="btn" id="lock-no">ביטול</button></div></div>`
+      ${state.confirmLock?`<div class="confirm"><b>לנעול עכשיו?</b> ${d.totalEntrants??d.entrants.length} ניחושים יינעלו. מי שלא הגיש עד עכשיו לא יוכל להשתתף.<div class="actions"><button class="btn danger" id="lock-yes">כן, נעל</button><button class="btn" id="lock-no">ביטול</button></div></div>`
       :`<div class="actions"><button class="btn" id="lock">🔒 נעל עכשיו</button></div>`}`}
   </div>
   ${L?`<div class="card">
