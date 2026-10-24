@@ -214,7 +214,8 @@ async function joinPending(){
   catch(e){state.joinMsg=e.message}
   state.tab="board";await load();
 }
-setInterval(()=>{if(document.visibilityState==="visible")load()},20000);
+// Refresh every ~45 s while the tab is visible (each viewer on its own rhythm), and right away on return.
+setTimeout(function tick(){if(document.visibilityState==="visible")load();setTimeout(tick,40000+Math.random()*10000)},40000+Math.random()*10000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")load()});
 
 /* ---------- scoring ---------- */
@@ -555,7 +556,7 @@ function tickCountdown(){
   const el=$("#countdown"),out=$("#cd-time"),label=el.querySelector(".cd-label");
   const now=Date.now();
   // Picks close: fetch the locked state once, so the form locks without a refresh.
-  if(now>=PICKS_CLOSE&&!reloadedAtClose){reloadedAtClose=true;state.dirty=false;setTimeout(load,1500)}
+  if(now>=PICKS_CLOSE&&!reloadedAtClose){reloadedAtClose=true;state.dirty=false;setTimeout(load,1500+Math.random()*15000)}
   // Before the lock the clock counts to the lock; after it, to the exit polls.
   const toLock=now<PICKS_CLOSE;
   label.textContent=toLock?"עד נעילת ההימורים":"עד המדגמים";
