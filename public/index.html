@@ -241,7 +241,7 @@ function renderHead(){
     const chip=d.results?'<span class="chip done">התוצאות פורסמו</span>':locked()?'<span class="chip lock">ההימורים נעולים</span>':'<span class="chip">פתוח להימורים</span>';
     const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline&&Date.parse(c.deadline)<PICKS_CLOSE?c.deadline:PICKS_CLOSE))}</span>`;
     const who=d.me?`<span>· ${esc(d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
-    $("#status").innerHTML=`${chip}<span>${n} ${n===1?"משתתף":"משתתפים"}</span>${when}${who}`;
+    $("#status").innerHTML=`${chip}<span>${locked()?`${n} ${n===1?"ניחוש":"ניחושים"} בקבוצה`:`${n} ${n===1?"הגיש":"הגישו"} ניחוש`}</span>${when}${who}`;
   }
   $("#rules-list").innerHTML=[
     `מספר מנדטים מדויק למפלגה: ${c.exact} נקודות`,
@@ -265,7 +265,7 @@ function renderGroups(){
   if(document.activeElement?.tagName==="INPUT"&&box.contains(document.activeElement))return; // don't wipe a field being typed in
   const gs=d.groups||[],g=gs.find(x=>x.id===d.group?.id);
   const pick=gs.length>1?`<select id="g-sel" aria-label="קבוצה">${gs.map(x=>`<option value="${esc(x.id)}" ${x.id===g?.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`:g?esc(g.name):"";
-  const head=g?`<span class="gname">${pick}<small>${g.members} ${g.members===1?"חבר":"חברים"}</small></span>`:`<span class="gname">אתה עוד לא בקבוצה</span>`;
+  const head=g?`<span class="gname">${pick}<small>${g.members} ${g.members===1?"חבר":"חברים"} בקבוצה</small></span>`:`<span class="gname">אתה עוד לא בקבוצה</span>`;
   let panel="";
   if(state.gpanel==="invite"&&g){
     const canRotate=g.role==="admin"||d.me.isAdmin;
