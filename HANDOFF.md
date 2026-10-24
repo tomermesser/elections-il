@@ -14,8 +14,8 @@
 - **בדיקות:** השרת נבדק מול Postgres מקומי (PGlite) ועבר 22 בדיקות. לא לשנות את הלוגיקה בלי סיבה.
 
 ## המשימה
-1. **קוד:** הקוד נמצא בתיקייה `election-wager`, מה-zip שצורף או מהריפו `tomermesser/election-wager` אם הוא קיים. מריצים `npm install`.
-2. **GitHub:** אם עדיין אין ריפו, ליצור ריפו פרטי `election-wager` עם `gh repo create`, ולדחוף את הענף `main`.
+1. **קוד:** הקוד נמצא בריפו `tomermesser/elections-il` (`git clone https://github.com/tomermesser/elections-il`). מריצים `npm install`.
+2. **GitHub:** הקוד כבר בריפו `tomermesser/elections-il`, בענף `main`.
 3. **Vercel:** לוודא ש-Vercel CLI מותקן ומחובר (`vercel whoami`). אם הוא לא מחובר, לבקש ממני להתחבר עם `vercel login`. אחר כך ליצור או לקשר פרויקט (`vercel link`), עדיף מחובר לריפו ב-GitHub כדי שכל push יעלה אוטומטית. Framework preset: Other. אין build command. תיקיית הפלט היא `public`, והיא כבר מוגדרת ב-vercel.json.
 4. **Neon:** להוסיף מסד נתונים של Neon לפרויקט דרך Vercel Marketplace (Storage → Neon), כך ש-`DATABASE_URL` יתווסף אוטומטית לכל הסביבות. אם זה לא עובד מה-CLI, להדריך אותי בדשבורד.
 5. **Google OAuth:** את זה אני עושה בעצמי ב-Google Cloud Console, ואתה מדריך אותי שלב אחרי שלב:
