@@ -119,6 +119,11 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
+.acc .sec::before{content:none}
+.role{display:inline-block;font-size:.72rem;font-weight:800;padding:1px 6px;border:1px solid var(--accent);color:var(--accent);vertical-align:middle;margin-inline-start:6px}
+.linkbtn.rm{color:var(--bad);font-size:.88rem}
+.rmc{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mlist li{flex-wrap:wrap}
 .asname{margin:0 0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .asname > span:first-child{flex:1 1 200px}
 .asname.rn{flex-direction:column;align-items:stretch;gap:6px}
@@ -321,7 +326,7 @@ function renderHead(){
     const n=locked()?(d.picks||[]).length:d.entrants.length;
     const chip=d.results?'<span class="chip done">התוצאות פורסמו</span>':locked()?'<span class="chip lock">ההימורים נעולים</span>':'<span class="chip">פתוח להימורים</span>';
     const when=locked()?`<span>· ננעל ב-${esc(fmtTime(d.lockedAt))}</span>`:`<span>· ננעל אוטומטית ב-${esc(fmtTime(c.deadline&&Date.parse(c.deadline)<PICKS_CLOSE?c.deadline:PICKS_CLOSE))}</span>`;
-    const who=d.me?`<span>· ${mine(d.me.fixedName||d.myPick?.name||d.me.email)} · <a href="/api/auth/logout">התנתקות</a></span>`:"";
+    const who=d.me?`<span>· ${mine(d.me.fixedName||d.myPick?.name||d.me.email)} · <button type="button" class="linkbtn" id="go-account">האזור האישי</button></span>`:"";
     $("#status").innerHTML=`${chip}<span>${locked()?`${n} ${n===1?"ניחוש":"ניחושים"} בקבוצה`:`${n} ${n===1?"הגיש":"הגישו"} ניחוש`}</span>${when}${who}`;
   }
   $("#rules-list").innerHTML=[
@@ -333,6 +338,7 @@ function renderHead(){
     `הניחוש הכי קרוב לאחוז ההצבעה: בונוס ${c.turnBonus} (בתיקו כולם מקבלים)`
   ].map(s=>`<li>${esc(s)}</li>`).join("");
   renderGroups();
+  $("#go-account")?.addEventListener("click",()=>{state.tab="account";state.confirmLeave=null;render();swapView?.();scrollTo({top:0})});
   const tabs=[["predict","הניחוש שלי"],["board","טבלה"],["stats","סטטיסטיקה"],["picks","כל הניחושים"]];
   if(d?.me?.isAdmin)tabs.push(["admin","ניהול"]);
   $("#nav").innerHTML=tabs.map(([k,l])=>`<button class="${state.tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
@@ -352,7 +358,8 @@ function renderGroups(){
   let panel="";
   if(state.gpanel==="members"&&g){
     const ms=d.group?.members||[],done=ms.filter(m=>m.submitted).length;
-    panel=`<div class="gpanel"><span class="muted">${done} מתוך ${ms.length} כבר הגישו ניחוש.</span><ul class="mlist">${ms.map(m=>`<li><span class="n">${m.me?mine(m.name||"אתה"):m.name?esc(m.name):'<span class="muted">עוד בלי שם</span>'}</span>${m.submitted?'<span class="ok">הגיש ✓</span>':'<span class="muted">עוד לא הגיש</span>'}</li>`).join("")}</ul></div>`;
+    const canRm=g.canManage&&!locked();
+    panel=`<div class="gpanel"><span class="muted">${done} מתוך ${ms.length} כבר הגישו ניחוש.${g.canManage?" אתה מנהל את הקבוצה.":""}</span><ul class="mlist">${ms.map(m=>`<li><span class="n">${m.me?mine(m.name||"אתה"):m.name?esc(m.name):'<span class="muted">עוד בלי שם</span>'}${m.admin?' <span class="role">מנהל</span>':""}</span>${m.submitted?'<span class="ok">הגיש ✓</span>':'<span class="muted">עוד לא הגיש</span>'}${canRm&&!m.me?(state.confirmRm===m.ref?`<span class="rmc">להסיר? <button type="button" class="btn sm danger" data-rm-yes="${esc(m.ref)}">כן, הסר</button> <button type="button" class="btn sm" data-rm-no>ביטול</button></span>`:`<button type="button" class="linkbtn rm" data-rm="${esc(m.ref)}" aria-label="הסר את ${esc(m.name||"החבר")} מהקבוצה">הסר</button>`):""}</li>`).join("")}</ul>${canRm?'<span class="muted">הסרה מוציאה מהקבוצה בלבד. הניחוש של מי שהוסר נשמר. כדי שלא יוכל לחזור, החלף את לינק ההזמנה.</span>':""}</div>`;
   }else if(state.gpanel==="invite"&&g){
     const canRotate=g.role==="admin"||d.me.isAdmin;
     panel=`<div class="gpanel"><span class="muted">שלח את הלינק לחברים. מי שנכנס דרכו מצטרף לקבוצה "${esc(g.name)}" אחרי שהוא נרשם.</span>
@@ -367,6 +374,13 @@ function renderGroups(){
   <div class="gtop">${head}${g?`<button class="btn sm" id="g-inv">הזמנת חברים</button><button class="btn sm" id="g-newbtn">קבוצה חדשה</button>`:""}</div>${panel}<span id="g-msg" class="muted" role="status"></span>`;
   const msg=$("#g-msg");
   $("#g-sel")?.addEventListener("change",e=>{state.group=e.target.value;state.joinMsg="";lsSet("wager_group",state.group);load()});
+  box.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{state.confirmRm=b.dataset.rm;renderGroups()}));
+  box.querySelector("[data-rm-no]")?.addEventListener("click",()=>{state.confirmRm=null;renderGroups()});
+  box.querySelector("[data-rm-yes]")?.addEventListener("click",async e=>{
+    e.target.disabled=true;
+    try{await api("/api/groups",{action:"remove",groupId:g.id,ref:e.target.dataset.rmYes});state.confirmRm=null;await load();$("#g-msg")&&($("#g-msg").textContent="הוסר מהקבוצה ✓")}
+    catch(err){state.confirmRm=null;renderGroups();$("#g-msg").textContent=err.message}
+  });
   $("#g-mem")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="members"?null:"members";state.joinMsg="";renderGroups()});
   $("#g-inv")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="invite"?null:"invite";state.joinMsg="";renderGroups()});
   $("#g-newbtn")?.addEventListener("click",()=>{state.gpanel=state.gpanel==="new"?null:"new";state.joinMsg="";renderGroups()});
@@ -397,9 +411,9 @@ function render(soft){
   renderHead();
   if(!state.data){$("#view").innerHTML=state.err?`<div class="banner bad">${esc(state.err)}</div>`:'<div class="card muted">טוען…</div>';return}
   const lockedChanged=state.lastLocked!==locked();
-  if(soft&&!lockedChanged&&$("#view").contains(document.activeElement)&&(state.tab==="predict"||state.tab==="admin")){updPredict?.();return}
+  if(soft&&!lockedChanged&&$("#view").contains(document.activeElement)&&(state.tab==="predict"||state.tab==="admin"||state.tab==="account")){updPredict?.();return}
   state.lastLocked=locked();updPredict=null;
-  (({predict:vPredict,board:vBoard,stats:vStats,picks:vPicks,admin:vAdmin})[state.tab]||vPredict)();
+  (({predict:vPredict,board:vBoard,stats:vStats,picks:vPicks,admin:vAdmin,account:vAccount})[state.tab]||vPredict)();
 }
 
 function loginCard(){
@@ -578,6 +592,40 @@ function vPicks(){
 }
 
 function toLocalInput(iso){if(!iso)return"";const d=new Date(iso);const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+function vAccount(){
+  const d=state.data;
+  if(!d.me){$("#view").innerHTML=loginCard();return}
+  const L=locked(),gs=d.groups||[],fixed=d.me.fixedName;
+  const nameBlock=fixed?(state.renaming&&!L?`<div class="asname rn"><label for="acc-rn" style="margin:0">השם החדש</label>
+      <div class="rn-line"><input type="text" id="acc-rn" maxlength="30" autocomplete="username" value="${esc(fixed)}"><button type="button" class="btn sm primary" id="acc-rn-save">שמור שם</button><button type="button" class="btn sm" id="acc-rn-cancel">ביטול</button></div>
+      <span class="muted">מעכשיו תיכנס עם השם החדש ועם אותו קוד.</span><span id="acc-rn-msg" class="bad" role="status"></span></div>`
+    :`<div class="asname"><span>השם שלך: <b>${esc(fixed)}</b>. איתו ועם הקוד שלך נכנסים מכל מכשיר.</span>${L?"":'<button type="button" class="btn sm" id="acc-rn-open">שינוי שם</button>'}</div>`)
+    :`<p class="asname">מחובר עם Google: <b dir="ltr">${esc(d.me.email)}</b>. את השם שמופיע בטבלה משנים בטופס הניחוש.</p>`;
+  const groupRows=gs.map(g=>`<li><span class="n"><b>${esc(g.name)}</b>${g.role==="admin"?' <span class="role">מנהל</span>':""} <span class="muted">· ${g.members} ${g.members===1?"חבר":"חברים"}</span></span>
+    ${state.confirmLeave===g.id?`<span class="rmc">לצאת? <button type="button" class="btn sm danger" data-leave-yes="${esc(g.id)}">כן, צא</button> <button type="button" class="btn sm" data-leave-no>ביטול</button></span>`
+    :`<button type="button" class="btn sm" data-open="${esc(g.id)}">לטבלה</button><button type="button" class="linkbtn rm" data-leave="${esc(g.id)}">יציאה</button>`}</li>`).join("");
+  $("#view").innerHTML=`<div class="card acc"><div class="sec">הפרטים שלי</div>${nameBlock}</div>
+  <div class="card acc"><div class="sec">הקבוצות שלי</div>
+    ${gs.length?`<ul class="mlist">${groupRows}</ul><span class="muted">יציאה מקבוצה לא מוחקת את הניחוש שלך. הוא רק לא יופיע בטבלה של אותה קבוצה. כדי לחזור צריך לינק הזמנה.</span>`:'<span class="muted">אתה עוד לא בקבוצה. אפשר להצטרף דרך לינק הזמנה מחבר, או לפתוח קבוצה בשורת הקבוצה למעלה.</span>'}
+    <span id="acc-msg" class="muted" role="status"></span></div>
+  <div class="card acc"><div class="sec">יציאה מהחשבון</div><p class="muted" style="margin:0">${fixed?"כדי לחזור, נכנסים עם אותו שם וקוד.":"כדי לחזור, מתחברים שוב עם Google."}</p><div class="actions"><a class="btn" href="/api/auth/logout">התנתקות</a></div></div>`;
+  const msg=$("#acc-msg");
+  $("#acc-rn-open")?.addEventListener("click",()=>{state.renaming=true;vAccount();const i=$("#acc-rn");if(i){i.focus();i.select()}});
+  $("#acc-rn-cancel")?.addEventListener("click",()=>{state.renaming=false;vAccount()});
+  const save=async()=>{const m=$("#acc-rn-msg"),b=$("#acc-rn-save");b.disabled=true;m.textContent="";
+    try{const j=await api("/api/auth/rename",{name:$("#acc-rn").value});state.renaming=false;if(state.draft)state.draft.name=j.name;await load();render()}
+    catch(e){m.textContent=e.message;b.disabled=false}};
+  $("#acc-rn-save")?.addEventListener("click",save);
+  $("#acc-rn")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();save()}else if(e.key==="Escape"){state.renaming=false;vAccount()}});
+  $("#view").querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>{state.group=b.dataset.open;lsSet("wager_group",state.group);state.tab="board";load()}));
+  $("#view").querySelectorAll("[data-leave]").forEach(b=>b.addEventListener("click",()=>{state.confirmLeave=b.dataset.leave;vAccount()}));
+  $("#view").querySelector("[data-leave-no]")?.addEventListener("click",()=>{state.confirmLeave=null;vAccount()});
+  $("#view").querySelector("[data-leave-yes]")?.addEventListener("click",async e=>{
+    const id=e.target.dataset.leaveYes;e.target.disabled=true;
+    try{await api("/api/groups",{action:"leave",groupId:id});state.confirmLeave=null;if(state.group===id){state.group=null;lsSet("wager_group",null)}await load();$("#acc-msg").textContent="יצאת מהקבוצה ✓"}
+    catch(err){state.confirmLeave=null;vAccount();$("#acc-msg").textContent=err.message}
+  });
+}
 function vAdmin(){
   const d=state.data;
   if(!d.me?.isAdmin){state.tab="predict";return vPredict()}

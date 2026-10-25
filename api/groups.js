@@ -1,6 +1,8 @@
 import { db } from "../lib/db.js";
 import { currentUser, isAdmin, sameOriginJson } from "../lib/auth.js";
-import { newCode, newGroupId, cleanGroupName } from "../lib/groups.js";
+import { newCode, newGroupId, cleanGroupName, memberRef } from "../lib/groups.js";
+import { settings } from "../lib/db.js";
+import { PICKS_CLOSE } from "../lib/game.js";
 
 const MAX_CREATED = 20;
 
@@ -40,6 +42,20 @@ export default async function handler(req, res) {
     if (body.action === "rotate") {
       if (m.role !== "admin" && !isAdmin(user.email)) return res.status(403).json({ error: "רק מי שפתח את הקבוצה יכול להחליף את הלינק" });
       await sql`update groups set code = ${newCode()} where id = ${groupId}`;
+      return res.status(200).json({ ok: true });
+    }
+
+    if (body.action === "remove") {
+      // The group's admin (or a site admin) takes someone out of the group. Their pick is kept.
+      if (m.role !== "admin" && !isAdmin(user.email)) return res.status(403).json({ error: "רק מנהל הקבוצה יכול להסיר חברים" });
+      const s = await settings(sql);
+      if (s.locked_at || Date.now() >= Date.parse(PICKS_CLOSE)) return res.status(423).json({ error: "אחרי הנעילה אי אפשר להסיר חברים" });
+      const ref = String(body.ref ?? "");
+      const rows = await sql`select member from memberships where group_id = ${groupId}`;
+      const target = rows.find((r) => memberRef(groupId, r.member) === ref)?.member;
+      if (!target) return res.status(404).json({ error: "החבר לא נמצא בקבוצה" });
+      if (target === user.email) return res.status(400).json({ error: "כדי לצאת מהקבוצה, השתמש ב\"יציאה מהקבוצה\" באזור האישי" });
+      await sql`delete from memberships where group_id = ${groupId} and member = ${target}`;
       return res.status(200).json({ ok: true });
     }
 

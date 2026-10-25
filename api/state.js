@@ -1,7 +1,7 @@
 import { db, settings } from "../lib/db.js";
 import { currentUser, isAdmin, displayEmail, googleEnabled, PIN_PREFIX } from "../lib/auth.js";
 import { config, PICKS_CLOSE, POLLS_CLOSE } from "../lib/game.js";
-import { myGroups } from "../lib/groups.js";
+import { myGroups, memberRef } from "../lib/groups.js";
 
 const asPick = (r) => ({ name: r.name, seats: r.seats, blocs: r.blocs, turnout: Number(r.turnout) });
 
@@ -23,14 +23,14 @@ export default async function handler(req, res) {
     // A member's name is the one on their pick, else the name they signed in with.
     const roster = group ? (lockedAt
       ? await sql`
-          select m.member, p.email, p.name as pick_name, p.seats, p.blocs, p.turnout, p.updated_at, p.created_at, a.display_name
+          select m.member, m.role, p.email, p.name as pick_name, p.seats, p.blocs, p.turnout, p.updated_at, p.created_at, a.display_name
           from memberships m
           left join picks p on p.email = m.member
           left join accounts a on 'pin:' || a.email = m.member
           where m.group_id = ${group.id}
           order by m.joined_at`
       : await sql`
-          select m.member, p.email, p.name as pick_name, p.updated_at, p.created_at, a.display_name
+          select m.member, m.role, p.email, p.name as pick_name, p.updated_at, p.created_at, a.display_name
           from memberships m
           left join picks p on p.email = m.member
           left join accounts a on 'pin:' || a.email = m.member
@@ -59,10 +59,16 @@ export default async function handler(req, res) {
       googleEnabled: googleEnabled(),
       picksClose: PICKS_CLOSE,
       pollsClose: POLLS_CLOSE,
-      groups: groups.map((g) => ({ id: g.id, name: g.name, code: g.code, role: g.role, members: g.members })),
+      groups: groups.map((g) => ({ id: g.id, name: g.name, code: g.code, role: g.role, members: g.members, canManage: g.role === "admin" || isAdmin(user.email) })),
       group: group ? {
         id: group.id, name: group.name,
-        members: roster.map((m) => ({ name: m.pick_name || m.display_name || "", submitted: !!m.pick_name, me: !!user && m.member === user.email }))
+        members: roster.map((m) => ({
+          ref: memberRef(group.id, m.member),
+          name: m.pick_name || m.display_name || "",
+          submitted: !!m.pick_name,
+          admin: m.role === "admin" || isAdmin(m.member),
+          me: !!user && m.member === user.email
+        }))
       } : null,
       totalEntrants: user && isAdmin(user.email) ? (await sql`select count(*)::int as n from picks`)[0].n : undefined,
       myPick: mineRow ? { ...asPick(mineRow), updatedAt: mineRow.updated_at } : null,
