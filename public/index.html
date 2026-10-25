@@ -155,6 +155,13 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or{display:flex;align-items:center;gap:10px;width:100%;color:var(--muted);font-size:.85rem}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
+/* Names in English stay on the right like Hebrew ones (plaintext would align them left) */
+.row .n,.mlist .n{text-align:right}
+.mine-link{text-align:right}
+.lb .lbh{min-height:0;padding-block:2px 6px;border-bottom:2px solid var(--ink)}
+.lb .lbh span{font-family:var(--f-body);font-size:.78rem;font-weight:700;color:var(--muted)}
+.lb .rank{width:auto;min-width:30px}
+:root[data-style="poster"] .lb .lbh span{color:var(--muted);font-family:var(--f-body)}
 .acc .sec::before{content:none}
 .crowd{border:2px solid var(--accent)}
 .crowd .sec::before{content:none}
@@ -688,7 +695,7 @@ function vBoard(){
     $("#view").innerHTML=`<div class="banner">התוצאות עוד לא פורסמו.</div><div class="card">${list.map(p=>`<div class="row"><span class="n">${p.mine?mine(p.name):esc(p.name)}</span></div>`).join("")||'<span class="muted">אף אחד לא הגיש לפני הנעילה.</span>'}</div>`;return;
   }
   const rows=scored();
-  $("#view").innerHTML=`<div class="card lb">${rows.map((r,i)=>`<div class="row" style="--i:${Math.min(i,12)}"><span class="rank">${r.rank}</span><span class="n">${r.rank===1?"🏆 ":""}${r.mine?mine(r.name):esc(r.name)}</span><span class="pts">${r.s.total}</span></div>`).join("")||'<span class="muted">אין ניחושים.</span>'}</div>`;
+  $("#view").innerHTML=`<div class="card lb">${rows.length?'<div class="row lbh"><span class="rank">מקום</span><span class="n">שם</span><span class="pts">נקודות</span></div>':""}${rows.map((r,i)=>`<div class="row" style="--i:${Math.min(i,12)}"><span class="rank">${r.rank}</span><span class="n">${r.rank===1?"🏆 ":""}${r.mine?mine(r.name):esc(r.name)}</span><span class="pts">${r.s.total}</span></div>`).join("")||'<span class="muted">אין ניחושים.</span>'}</div>`;
 }
 
 // "מדגם החברים": everyone's average across all groups, published by the server only after 22:00.
