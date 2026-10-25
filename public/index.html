@@ -132,6 +132,10 @@ td.near{color:var(--warn);font-weight:800;background:var(--warn-soft)}
 .or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
 .n,td,th{unicode-bidi:plaintext}
 .acc .sec::before{content:none}
+.crowd{border:2px solid var(--accent)}
+.crowd .sec::before{content:none}
+.crowd-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;font-size:1.1rem;padding-bottom:6px;border-bottom:2px solid var(--ink)}
+.cseats{font-weight:800;font-size:1.15rem;min-width:36px;text-align:end;font-variant-numeric:tabular-nums}
 .accpanel{display:flex;flex-direction:column;gap:10px;border:2px solid var(--ink);background:var(--paper);padding:12px}
 .accpanel .card{border:0;padding:0;background:none}
 .accpanel .card + .card{border-top:1px solid var(--line);padding-top:12px}
@@ -596,16 +600,31 @@ function vBoard(){
   $("#view").innerHTML=`<div class="card lb">${rows.map((r,i)=>`<div class="row" style="--i:${Math.min(i,12)}"><span class="rank">${r.rank}</span><span class="n">${r.rank===1?"🏆 ":""}${r.mine?mine(r.name):esc(r.name)}</span><span class="pts">${r.s.total}</span></div>`).join("")||'<span class="muted">אין ניחושים.</span>'}</div>`;
 }
 
+// "מדגם החברים": everyone's average across all groups, published by the server only after 22:00.
+function crowdCard(){
+  const k=state.data?.crowd;
+  if(!k)return locked()?'<div class="banner">📺 <b>מדגם החברים</b>, הממוצע של כל המשתתפים באתר מכל הקבוצות, יתפרסם ב-22:00 עם סגירת הקלפיות, יחד עם המדגמים בטלוויזיה.</div>':"";
+  const rows=k.parties.map(p=>({...p,seats:k.seats[p.name]||0})).sort((a,b)=>b.seats-a.seats||b.avg-a.avg);
+  const max=Math.max(...rows.map(r=>r.seats),1);
+  const bl=k.blocs.map(b=>({...b,seats:k.blocSeats[b.name]||0}));
+  return `<div class="card crowd"><div class="crowd-h"><b>מדגם החברים</b><span class="muted">22:00 · לפי ${k.n} ניחושים מכל הקבוצות</span></div>
+    ${rows.map(r=>`<div class="row srow"><span class="n">${pname(r.name)}</span><div class="bar"><i style="width:${r.seats/max*100}%"></i></div><span class="cseats">${r.seats}</span><span class="rng muted" title="ממוצע הניחושים">${r.avg.toFixed(1)}</span></div>`).join("")}
+    <div class="sec">גושים</div>
+    ${bl.map(b=>`<div class="row"><span class="n">${esc(b.name)}</span><span class="tag">${b.seats>=61?"רוב":""}</span><div class="maj" aria-hidden="true"><i style="width:${Math.min(100,b.seats/120*100)}%"></i><b></b></div><span class="cseats">${b.seats}</span></div>`).join("")}
+    <div class="row"><span class="n">אחוז הצבעה (ממוצע)</span><span class="cseats">${esc(k.turnout)}%</span></div>
+    <p class="muted" style="margin:6px 0 0;font-size:.85rem">המספר הגדול: מנדטים, אחרי שמפלגה עם ממוצע מתחת ל-4 מנדטים נחשבת כלא עוברת את אחוז החסימה, ו-120 המנדטים מתחלקים בין השאר לפי הממוצע. המספר הקטן: ממוצע הניחושים.</p></div>`;
+}
 function vStats(){
-  if(noGroup()){$("#view").innerHTML=noGroup();return}
+  const cc=crowdCard();
+  if(noGroup()){$("#view").innerHTML=cc+noGroup();return}
   if(!locked()){$("#view").innerHTML='<div class="banner">📊 הסטטיסטיקה תופיע אחרי שההימורים יינעלו.</div>';return}
   const list=state.data.picks||[],res=state.data.results,c=cfg();
-  if(!list.length){$("#view").innerHTML='<div class="card muted">אין ניחושים.</div>';return}
+  if(!list.length){$("#view").innerHTML=cc+'<div class="card muted">אין ניחושים.</div>';return}
   const stat=f=>{const v=list.map(p=>+f(p)||0);return{a:v.reduce((x,y)=>x+y,0)/v.length,lo:Math.min(...v),hi:Math.max(...v)}};
   const block=(items,max,actual)=>items.sort((x,y)=>y.s.a-x.s.a).map(it=>`<div class="row srow"><span class="n">${pname(it.k)}</span><div class="bar"><i style="width:${Math.min(100,it.s.a/max*100)}%"></i></div><span class="avg">${it.s.a.toFixed(1)}</span><span class="rng muted">${it.s.lo}–${it.s.hi}</span>${actual?`<span class="rng">${esc(actual(it.k))}</span>`:""}</div>`).join("");
   const ps=c.parties.map(k=>({k,s:stat(p=>p.seats?.[k])})),bs=BLOCS.map(k=>({k,s:stat(p=>p.blocs?.[k])})),tn=stat(p=>p.turnout);
   const pmax=Math.max(...ps.map(x=>x.s.a),1),bmax=Math.max(...bs.map(x=>x.s.a),1);
-  $("#view").innerHTML=`<div class="card"><p class="muted" style="margin:0">לפי ${list.length} ניחושים. עמודות: ממוצע · הכי נמוך–הכי גבוה${res?" · בפועל":""}.</p>
+  $("#view").innerHTML=`${cc}<div class="card"><p class="muted" style="margin:0">לפי ${list.length} ניחושים. עמודות: ממוצע · הכי נמוך–הכי גבוה${res?" · בפועל":""}.</p>
   <div class="sec">מנדטים לכל מפלגה</div>${block(ps,pmax,res?k=>res[k]??"–":null)}
   <div class="sec">גודל הגושים</div>${block(bs,bmax,res?k=>res.blocs?.[k]??"–":null)}
   <div class="sec">אחוז הצבעה</div><div class="row"><span class="n">ממוצע הניחושים</span><span class="avg">${tn.a.toFixed(1)}%</span><span class="rng muted">${tn.lo}–${tn.hi}</span>${res?.turnout!=null?`<span class="rng">${esc(res.turnout)}%</span>`:""}</div></div>`;

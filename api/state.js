@@ -1,6 +1,16 @@
 import { db, settings } from "../lib/db.js";
 import { currentUser, isAdmin, displayEmail, googleEnabled, PIN_PREFIX } from "../lib/auth.js";
-import { config, PICKS_CLOSE, POLLS_CLOSE } from "../lib/game.js";
+import { config, PICKS_CLOSE, POLLS_CLOSE, crowdPoll } from "../lib/game.js";
+
+// The site-wide average is the same for everyone: compute it at most once a minute per instance.
+let crowdCache = { at: 0, value: null };
+async function crowd(sql, lockedAt, parties) {
+  if (Date.now() - crowdCache.at < 60_000) return crowdCache.value;
+  const rows = await sql`select seats, blocs, turnout from picks where updated_at <= ${lockedAt}::timestamptz`;
+  const value = crowdPoll(rows.map((r) => ({ ...r, turnout: Number(r.turnout) })), parties);
+  crowdCache = { at: Date.now(), value };
+  return value;
+}
 import { myGroups, memberRef } from "../lib/groups.js";
 
 const asPick = (r) => ({ name: r.name, seats: r.seats, blocs: r.blocs, turnout: Number(r.turnout) });
@@ -58,6 +68,8 @@ export default async function handler(req, res) {
       me: user ? { email: label, googleName: user.name, fixedName, isAdmin: isAdmin(user.email) } : null,
       googleEnabled: googleEnabled(),
       picksClose: PICKS_CLOSE,
+      // Published only once the polls have closed (22:00), never before.
+      crowd: lockedAt && Date.now() >= Date.parse(POLLS_CLOSE) ? await crowd(sql, lockedAt, c.parties) : null,
       pollsClose: POLLS_CLOSE,
       groups: groups.map((g) => ({ id: g.id, name: g.name, code: g.code, role: g.role, members: g.members, canManage: g.role === "admin" || isAdmin(user.email) })),
       group: group ? {
