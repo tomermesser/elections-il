@@ -20,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Noto+Serif+Hebrew:wght@600;700&display=swap">
+<script>try{var t=localStorage.getItem("wager_theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Layout: one narrow column on a faint cobalt grid. Masthead, group bar, tabs, then square hairline cards. */
 :root{
@@ -31,11 +32,16 @@
   --f-body:"Heebo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root{
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0f1326;--paper:#161b33;--ink:#e8eaf4;--muted:#9aa0bb;--line:#2b3253;
   --accent:#7f97ff;--accent-ink:#0f1326;--accent-soft:#1f2850;
   --good:#6fd39a;--good-soft:#14301f;--warn:#f5b458;--warn-soft:#3a2810;--bad:#ff7a6c;--bad-soft:#3d1a16;
   --gridline:rgba(127,151,255,.07);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1326;--paper:#161b33;--ink:#e8eaf4;--muted:#9aa0bb;--line:#2b3253;
+  --accent:#7f97ff;--accent-ink:#0f1326;--accent-soft:#1f2850;
+  --good:#6fd39a;--good-soft:#14301f;--warn:#f5b458;--warn-soft:#3a2810;--bad:#ff7a6c;--bad-soft:#3d1a16;
+  --gridline:rgba(127,151,255,.07);color-scheme:dark}
 *{box-sizing:border-box}
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body,.welcome{background-color:var(--bg);background-image:linear-gradient(to right,var(--gridline) 1px,transparent 1px),linear-gradient(to bottom,var(--gridline) 1px,transparent 1px);background-size:24px 24px}
@@ -44,7 +50,13 @@ body{color:var(--ink);font:17px/1.5 var(--f-body);margin:0;overflow-wrap:anywher
 main{max-width:680px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 h1{font-family:var(--f-display);font-weight:700;font-size:2.7rem;line-height:1.05;letter-spacing:-.01em;margin:0;text-wrap:balance}
 .head{display:flex;flex-direction:column;gap:10px;border-top:4px solid var(--accent);padding-top:12px}
-.kicker{font-size:.78rem;font-weight:700;color:var(--accent)}
+.kicker{font-size:.78rem;font-weight:700;color:var(--accent);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.themebtn{flex:none;display:inline-flex;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:.8rem;font-weight:700;padding:4px 10px;cursor:pointer}
+.themebtn:hover{border-color:var(--ink)}
+.seg{display:inline-flex;align-self:flex-start;border:1px solid var(--ink)}
+.seg button{background:var(--paper);color:var(--ink);border:0;border-inline-start:1px solid var(--line);font:inherit;font-size:.9rem;font-weight:700;padding:6px 12px;cursor:pointer}
+.seg button:first-child{border-inline-start:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .titlebar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:12px}
 .titlebar h1{min-width:0}
 .countdown{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 10px;border:1px solid var(--accent);background:var(--paper);text-align:start}
@@ -218,7 +230,7 @@ input.bump{animation:bump .22s ease-out}
 <body>
 <main>
   <div class="head">
-    <div class="kicker">בחירות לכנסת ה־26 · יום שלישי 27.10.2026</div>
+    <div class="kicker"><span>בחירות לכנסת ה־26 · יום שלישי 27.10.2026</span><button type="button" class="themebtn" id="theme-btn"></button></div>
     <div class="titlebar">
       <h1 id="title">הימורי בחירות 2026</h1>
       <div class="countdown" id="countdown" role="timer" aria-live="off" title="סגירת הקלפיות ושידור המדגמים, יום שלישי 27.10 בשעה 22:00">
@@ -238,6 +250,24 @@ input.bump{animation:bump .22s ease-out}
   <div id="view"></div>
 </main>
 <script>
+/* ---------- theme: by device, or the viewer's own choice ---------- */
+const darkMQ=matchMedia("(prefers-color-scheme: dark)");
+const themeChoice=()=>document.documentElement.dataset.theme||"auto";
+const isDark=()=>themeChoice()==="dark"||(themeChoice()==="auto"&&darkMQ.matches);
+function setTheme(t){
+  if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;
+  lsSet("wager_theme",t==="dark"||t==="light"?t:null);paintThemeControls();
+}
+function paintThemeControls(){
+  const b=document.getElementById("theme-btn");
+  if(b){const d=isDark();b.textContent=d?"☀ מצב בהיר":"☾ מצב כהה";b.setAttribute("aria-label",d?"עבור למצב בהיר":"עבור למצב כהה")}
+  document.querySelectorAll("[data-theme-set]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.themeSet===themeChoice())));
+}
+darkMQ.addEventListener?.("change",paintThemeControls);
+document.addEventListener("click",e=>{
+  if(e.target.closest("#theme-btn"))setTheme(isDark()?"light":"dark");
+  const s=e.target.closest("[data-theme-set]");if(s)setTheme(s.dataset.themeSet);
+});
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
 const BLOCS=["גוש השינוי","גוש נתניהו","מפלגות ערביות"];
@@ -617,8 +647,10 @@ function renderAccount(){
   <div class="card acc"><div class="sec">הקבוצות שלי</div>
     ${gs.length?`<ul class="mlist">${groupRows}</ul><span class="muted">יציאה מקבוצה לא מוחקת את הניחוש שלך. הוא רק לא יופיע בטבלה של אותה קבוצה. כדי לחזור צריך לינק הזמנה.</span>`:'<span class="muted">אתה עוד לא בקבוצה. אפשר להצטרף דרך לינק הזמנה מחבר, או לפתוח קבוצה בשורת הקבוצה למעלה.</span>'}
     <span id="acc-msg" class="muted" role="status"></span></div>
+  <div class="card acc"><div class="sec">תצוגה</div><div class="seg" role="group" aria-label="מצב תצוגה"><button type="button" data-theme-set="light">בהיר</button><button type="button" data-theme-set="dark">כהה</button><button type="button" data-theme-set="auto">לפי המכשיר</button></div></div>
   <div class="card acc"><div class="sec">יציאה מהחשבון</div><p class="muted" style="margin:0">${fixed?"כדי לחזור, נכנסים עם אותו שם וקוד.":"כדי לחזור, מתחברים שוב עם Google."}</p><div class="actions"><a class="btn" href="/api/auth/logout">התנתקות</a></div></div>`;
   const msg=$("#acc-msg");
+  paintThemeControls();
   $("#acc-close")?.addEventListener("click",()=>{state.accountOpen=false;state.renaming=false;state.confirmLeave=null;renderHead()});
   $("#acc-rn-open")?.addEventListener("click",()=>{state.renaming=true;renderAccount();const i=$("#acc-rn");if(i){i.focus();i.select()}});
   $("#acc-rn-cancel")?.addEventListener("click",()=>{state.renaming=false;renderAccount()});
@@ -756,7 +788,7 @@ function welcome(){
 }
 if(lsGet("wager_welcome"))arrive();else welcome();
 
-render();load();
+paintThemeControls();render();load();
 </script>
 </body>
 </html>
